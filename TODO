@@ -1,0 +1,46 @@
+MVP Needs:
+* Storage (S3)
+* Metadata store (Dynamo)
+* Authn/z (Cognito)
+* API tier (Lambda/Python/Flask)
+* Front-end (React on S3)
+* App Features:
+  * Storage (Managed through S3 interface or clients)
+  * Galleries
+  * Thumbnails
+  * Tags
+  * Ratings
+  * Permissions (managed through Cognito interface)
+    * Public
+    * Shareable with/Link
+    * Private
+  * Metadata extraction (Date/Time at minimum)
+
+Tasks:
+Deployment model
+- CFN
+- 2-stage - Lambda code staged to public S3 bucket, CFN uses it
+Better-organized repo
+- Contain all Lambda code as separate packages/directories
+- Infra code
+- Tests (Ha!)
+- Docs
+Infra Code
+- One CFN template for S3, Lambda, Dynamo, Cognito
+- Dynamo GSI's
+Utility Code:
+- Indexing function for processing thumbnails & generating metadata
+App Code (API):
+- Photo GET
+- Gallery CRUD operations
+- Tagging & rating
+- Search
+Front-end:
+- Gallery View
+- Image View
+- Search results
+
+Backlog:
+- OpSec: AWS Config, CloudWatch Alarms
+- Uploads.  Agents?
+- Mobile
