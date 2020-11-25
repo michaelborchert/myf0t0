@@ -1,8 +1,13 @@
 Next Steps:
-* Build & deploy scripts for Lambda Code
 * Add Lambda functions (and IAM stuff) to CFN
 * Update processing code to work with DDB
 
+Goals:
+* Distributable - non-technical users should be able to deploy the whole app.  Suggests a single CFN template and/or AWS Marketplace.
+* Hackable - Loosely coupled components, as few fancy frameworks as possible
+* Hostable - Can run multiple instances in a single account
+* Sorta-social - Manage permissions and users, but not a "multi-tennant" app.
+* Secure - Don't lose my pictures!  Don't show 'em to yahoos!
 
 MVP Needs:
 * Storage (S3)
