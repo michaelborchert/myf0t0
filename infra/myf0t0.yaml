@@ -8,7 +8,7 @@ Parameters:
 Conditions:
   NewBucket: !Equals [!Ref OldPhotoBucketName, ""]
 Resources:
-  PhotoBucke:
+  PhotoBucket:
     Type: AWS::S3::Bucket
     Condition: NewBucket
     Properties:
@@ -40,9 +40,63 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: "5"
         WriteCapacityUnits: "5"
-  DBArnParam:
-      Type: AWS::SSM::Parameter
-      Properties:
-        Name: metadata_db_arn
-        Type: String
-        Value: !Ref MetadataDb
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Description: "Execution role for MyF0t0 Lambda functions."
+  LambdaExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:*'
+            Resource:
+              - !GetAtt PhotoBucket.Arn
+          - Effect: Allow
+            Action:
+              - 'dynamodb:*'
+            Resource:
+              - !GetAtt MetadataDb.Arn
+      PolicyName: !Join ["-", [ !Ref AWS::StackName, "lambda-execution"] ]
+      Roles:
+        - !Ref LambdaRole
+  ProcessingFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: myf0t0dist
+        S3Key: photo-processor.zip
+      Description: Event-driven photo processor
+      Environment:
+        Variables:
+          db_arn: !Ref MetadataDb
+          photo_bucket: !Ref PhotoBucket
+      Handler: photo-processor.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6
+  ApiFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: myf0t0dist
+        S3Key: api.zip
+      Description: MyF0t0 API backend
+      Environment:
+        Variables:
+          db_arn: !Ref MetadataDb
+          photo_bucket: !Ref PhotoBucket
+      Handler: app.app
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.6

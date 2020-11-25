@@ -56,3 +56,4 @@ Backlog:
 - OpSec: AWS Config, CloudWatch Alarms
 - Uploads.  Agents?
 - Mobile
+- Multi-region support - multi-region dist buckets and CFN map
