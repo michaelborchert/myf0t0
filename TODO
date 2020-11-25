@@ -1,6 +1,6 @@
 Next Steps:
-* Add Lambda functions (and IAM stuff) to CFN
-* Update processing code to work with DDB
+  * Add Lambda functions (and IAM stuff) to CFN
+  * Update processing code to work with DDB
 
 Goals:
 * Distributable - non-technical users should be able to deploy the whole app.  Suggests a single CFN template and/or AWS Marketplace.
