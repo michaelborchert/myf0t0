@@ -1,0 +1,18 @@
+create table photos (photo_id VARCHAR(64) PRIMARY KEY, timestamp VARCHAR(255), key VARCHAR(255), thumbnail_key VARCHAR(255), name VARCHAR(255), rating SMALLINT)
+;
+
+
+photos?
+  start_date
+  end_date
+  oldest_first
+  results
+  page
+
+tag
+  id
+  key
+  value
+
+
+https://www.citusdata.com/blog/2016/03/30/five-ways-to-paginate/

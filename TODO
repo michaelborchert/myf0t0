@@ -1,8 +1,15 @@
+Next Steps:
+* Build & deploy scripts for Lambda Code
+* Add Lambda functions (and IAM stuff) to CFN
+* Update processing code to work with DDB
+
+
 MVP Needs:
 * Storage (S3)
 * Metadata store (Dynamo)
 * Authn/z (Cognito)
 * API tier (Lambda/Python/Flask)
+* Processing Tier (Lambda)
 * Front-end (React on S3)
 * App Features:
   * Storage (Managed through S3 interface or clients)
