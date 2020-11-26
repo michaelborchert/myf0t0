@@ -8,11 +8,36 @@ Parameters:
 Conditions:
   NewBucket: !Equals [!Ref OldPhotoBucketName, ""]
 Resources:
+  ProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+        QueueName: Monkeys
+  ProcessingQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ProcessingQueue
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "SQS:SendMessage"
+            Effect: "Allow"
+            Resource: !GetAtt ProcessingQueue.Arn
+            Principal:
+              AWS: "*"
+
   PhotoBucket:
     Type: AWS::S3::Bucket
     Condition: NewBucket
+    DependsOn: ProcessingQueue
     Properties:
       AccessControl: PublicRead
+      NotificationConfiguration:
+        QueueConfigurations:
+          -
+            Event: s3:ObjectCreated:*
+            Queue: !GetAtt ProcessingQueue.Arn
   AppBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -20,6 +45,7 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
+
   MetadataDb:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -69,11 +95,18 @@ Resources:
               - 'dynamodb:*'
             Resource:
               - !GetAtt MetadataDb.Arn
+          - Effect: Allow
+            Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessage'
+              - 'sqs:GetQueueAttributes'
+            Resource: !GetAtt ProcessingQueue.Arn
       PolicyName: !Join ["-", [ !Ref AWS::StackName, "lambda-execution"] ]
       Roles:
         - !Ref LambdaRole
   ProcessingFunction:
     Type: AWS::Lambda::Function
+    DependsOn: LambdaExecutionPolicy
     Properties:
       Code:
         S3Bucket: myf0t0dist
@@ -86,6 +119,19 @@ Resources:
       Handler: photo-processor.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
+  ProcessingFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeLambda
+      FunctionName: !Ref ProcessingFunction
+      Principal: sqs.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt ProcessingQueue.Arn
+  ProcessingEventSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt ProcessingQueue.Arn
+      FunctionName: !Ref ProcessingFunction
   ApiFunction:
     Type: AWS::Lambda::Function
     Properties:
