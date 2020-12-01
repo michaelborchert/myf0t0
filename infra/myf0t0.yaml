@@ -11,7 +11,7 @@ Resources:
   ProcessingQueue:
     Type: AWS::SQS::Queue
     Properties:
-        QueueName: Monkeys
+      QueueName: !Join ["-", [!Ref AWS::StackName, "ProcessingQueue"]]
   ProcessingQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
@@ -79,6 +79,8 @@ Resources:
           Action:
           - sts:AssumeRole
       Description: "Execution role for MyF0t0 Lambda functions."
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   LambdaExecutionPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -90,6 +92,7 @@ Resources:
               - 's3:*'
             Resource:
               - !GetAtt PhotoBucket.Arn
+              - !Join ["", [!GetAtt PhotoBucket.Arn, "/*"]]
           - Effect: Allow
             Action:
               - 'dynamodb:*'
@@ -119,6 +122,7 @@ Resources:
       Handler: photo-processor.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
+      Timeout: 30
   ProcessingFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:

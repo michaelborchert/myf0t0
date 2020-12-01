@@ -5,12 +5,12 @@ from PIL.ExifTags import TAGS
 from dateutil import parser
 import datetime
 import pytz
+import os
 
 import boto3
 import json
 
-BUCKET_NAME = 'borchert-photos'
-THUMBNAIL_BUCKET_NAME = 'borchert-thumbnails'
+BUCKET_NAME = os.environ['photo_bucket']
 THUMBNAIL_SIZE = 128, 128
 
 def get_exif(im):
@@ -22,7 +22,8 @@ def get_exif(im):
     return ret
 
 def handler(event, context):
-    #print(json.dumps(event, indent=2))
+    print(json.dumps(event, indent=2))
+    print(BUCKET_NAME)
 
     s3 = boto3.resource('s3')
 
@@ -46,8 +47,8 @@ def handler(event, context):
             im.thumbnail(THUMBNAIL_SIZE)
             thumbnail_filename = file_id + ".thumbnail"
             im.save("/tmp/" + thumbnail_filename, "JPEG")
-            thumbnail_key = BUCKET_NAME+"/"+key
-            s3.Bucket(THUMBNAIL_BUCKET_NAME).upload_file("/tmp/"+thumbnail_filename, thumbnail_key)
+            thumbnail_key = "thmb/"+key
+            s3.Bucket(BUCKET_NAME).upload_file("/tmp/"+thumbnail_filename, thumbnail_key)
 
             #Extract accessible EXIF data
             timestamp = datetime.datetime.strptime(exif_data["DateTimeOriginal"], "%Y:%m:%d %H:%M:%S")
@@ -55,7 +56,7 @@ def handler(event, context):
             photo_id = file_id + " " + exif_data["DateTimeOriginal"]
 
             key = "https://{}.s3-ap-southeast-1.amazonaws.com/{}".format(BUCKET_NAME, key.replace(" ", "+"))
-            thumbnail_key = "https://{}.s3-ap-southeast-1.amazonaws.com/{}".format(THUMBNAIL_BUCKET_NAME, thumbnail_key.replace(" ", "+"))
+            thumbnail_key = "https://{}.s3-ap-southeast-1.amazonaws.com/{}".format(BUCKET_NAME, thumbnail_key.replace(" ", "+"))
 
             print(photo_id)
             print(timestamp)
@@ -64,6 +65,7 @@ def handler(event, context):
 
             #Write record to Dynamo
             #TODO
-    conn.close()
 
-    return
+    return {
+          'message' : "Success!"
+      }
