@@ -14,5 +14,20 @@ tag
   key
   value
 
+Get photos in date range (Table - 4 queries on PK, SK between X and Y)
+Get photos with tag (GSI1 - PK = tag)
+Get photos by rating (GSI1 - PK = rating)
+Get photos in gallery (Table - PK = gallery, SK != gallery)
+Get gallery metadata (Table - PK = gallery, SK = gallery)
+Get galleries for photo (GSI1 - PK = s3_key)
+
+id = filename
+
+PK                          SK            GSI1PK    GSI1SK
+'photos[0..4{hash of id}]'  date+name(id) rating    s3_key        <metadata>
+                            tag           tag       id
+
+gallery_id (name)           gallery_id                            <metadata>
+                            id            s3_key    gallery_id
 
 https://www.citusdata.com/blog/2016/03/30/five-ways-to-paginate/

@@ -38,6 +38,12 @@ Resources:
           -
             Event: s3:ObjectCreated:*
             Queue: !GetAtt ProcessingQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: "prefix"
+                    Value: "img/"
   AppBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -51,21 +57,42 @@ Resources:
     Properties:
       AttributeDefinitions:
         -
-          AttributeName: "PhotoKey"
+          AttributeName: "PK"
           AttributeType: "S"
         -
-          AttributeName: "CreationDate"
+          AttributeName: "SK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1PK"
+          AttributeType: "S"
+        -
+          AttributeName: "GSI1SK"
           AttributeType: "S"
       KeySchema:
         -
-          AttributeName: "PhotoKey"
+          AttributeName: "PK"
           KeyType: "HASH"
         -
-          AttributeName: "CreationDate"
+          AttributeName: "SK"
           KeyType: "RANGE"
       ProvisionedThroughput:
         ReadCapacityUnits: "5"
         WriteCapacityUnits: "5"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "GSI1"
+          KeySchema:
+            -
+              AttributeName: "GSI1PK"
+              KeyType: "HASH"
+            -
+              AttributeName: "GSI1SK"
+              KeyType: "RANGE"
+          ProvisionedThroughput:
+            ReadCapacityUnits: "5"
+            WriteCapacityUnits: "5"
+          Projection:
+            ProjectionType: "ALL"
   LambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -117,7 +144,7 @@ Resources:
       Description: Event-driven photo processor
       Environment:
         Variables:
-          db_arn: !Ref MetadataDb
+          db_name: !Ref MetadataDb
           photo_bucket: !Ref PhotoBucket
       Handler: photo-processor.handler
       Role: !GetAtt LambdaRole.Arn

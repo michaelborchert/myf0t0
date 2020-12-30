@@ -18,9 +18,10 @@ sqs_client = boto3.client('sqs')
 #         photo_bucket = bucket["Name"]
 
 
-objects = s3_client.list_objects(Bucket=bucketname, MaxKeys=1)
+objects = s3_client.list_objects(Bucket=bucketname, MaxKeys=3)
 for object in objects["Contents"]:
-    response = sqs_client.send_message(
-        QueueUrl=queue_url,
-        MessageBody=object["Key"]
-    )
+    if object["Key"].startswith("img/") and object["Key"] != "img/":
+        response = sqs_client.send_message(
+            QueueUrl=queue_url,
+            MessageBody=object["Key"]
+        )
