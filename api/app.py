@@ -1,14 +1,15 @@
 from flask import Flask, jsonify, request, make_response
+from flask_lambda import FlaskLambda
 from flask_cors import CORS
 from flask_swagger import swagger
 
 import datetime
 import json
 
-app = Flask(__name__)
+app = FlaskLambda(__name__)
 CORS(app)
 
-@app.route("/")
+@app.route("/", methods=['GET'])
 def hello():
   return "Hello World!"
 

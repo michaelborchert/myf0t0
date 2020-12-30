@@ -51,7 +51,6 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-
   MetadataDb:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -163,6 +162,42 @@ Resources:
     Properties:
       EventSourceArn: !GetAtt ProcessingQueue.Arn
       FunctionName: !Ref ProcessingFunction
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+        -
+          PolicyName: ApiGatewayLogsPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                  - 'logs:PutLogEvents'
+                  - 'logs:GetLogEvents'
+                  - 'logs:FilterLogEvents'
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource: "*"
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayRole.Arn
   ApiFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -177,3 +212,53 @@ Resources:
       Handler: app.app
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
+  ApiFunctionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: RestApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*"
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "myf0t0"
+      Description: "API Gateway for MyF0t0"
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: LATEST
+      Description: Latest Stage
+      RestApiId:  !Ref RestApi
+      DeploymentId: !Ref ApiDeployment
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          DataTraceEnabled: true
+          LoggingLevel: INFO
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: ProxyRequest
+    Properties:
+      RestApiId: !Ref RestApi
+      StageName: DummyStage
+  ProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: "{proxy+}"
+  ProxyRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref ProxyResource
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations

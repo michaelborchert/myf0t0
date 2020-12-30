@@ -1,4 +1,4 @@
-#!/home/michael/code/myf0t0/bin/python
+#!/home/michael/code/myf0t0/api/bin/python
 
 import sys
 import getopt
