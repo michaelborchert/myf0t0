@@ -220,6 +220,9 @@ Resources:
       FunctionName: !Ref ApiFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*"
+      EndpointConfiguration:
+        Types:
+          - Regional
   RestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -239,24 +242,39 @@ Resources:
           LoggingLevel: INFO
   ApiDeployment:
     Type: AWS::ApiGateway::Deployment
-    DependsOn: ProxyRequest
+    DependsOn:
+      - PhotoGetRequest
+      - PhotoPutRequest
     Properties:
       RestApiId: !Ref RestApi
       StageName: DummyStage
-  ProxyResource:
+  PhotoResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId: !Ref RestApi
       ParentId: !GetAtt RestApi.RootResourceId
-      PathPart: "{proxy+}"
-  ProxyRequest:
+      PathPart: "photo"
+  PhotoGetRequest:
     Type: AWS::ApiGateway::Method
     DependsOn: ApiFunctionPermission
     Properties:
       RestApiId: !Ref RestApi
-      ResourceId: !Ref ProxyResource
+      ResourceId: !Ref PhotoResource
       AuthorizationType: NONE
-      HttpMethod: ANY
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  PhotoPutRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref PhotoResource
+      AuthorizationType: NONE
+      HttpMethod: PUT
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
