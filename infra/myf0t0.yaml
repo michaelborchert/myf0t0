@@ -207,7 +207,7 @@ Resources:
       Description: MyF0t0 API backend
       Environment:
         Variables:
-          db_arn: !Ref MetadataDb
+          db_name: !Ref MetadataDb
           photo_bucket: !Ref PhotoBucket
       Handler: app.app
       Role: !GetAtt LambdaRole.Arn
