@@ -20,12 +20,23 @@ app.api.cors = True
 
 db_client = boto3.client('dynamodb')
 
-# def gather_query(**kwargs):
-#     responses = []
-#     for x in [1..4]:
-#         **kwargs[""]
-#         response = client.query(**kwargs)
-#     return response
+def photo_query(**kwargs):
+    if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
+        print("debug1")
+        if (kwargs["ExpressionAttributeValues"][":partitionkeyval"].get("S", "Not Found") == "$photos"):
+            print("debug2")
+            output = {"Items": []}
+            for x in range(1,5):
+                print("debug3")
+                kwargs["ExpressionAttributeValues"][":partitionkeyval"]["S"] = "photos"+str(x)
+                response = db_client.query(**kwargs)
+                #print(response)
+                output["Items"].extend(response["Items"])
+            return output
+    else:
+        response =  db_client.query(**kwargs)
+        return response
+
 
 def item_to_dict(item):
     if isinstance(item, dict):
@@ -56,14 +67,14 @@ def hello():
 @app.route("/photo", methods=['GET'])
 def get_photos():
     print(json.dumps(app.current_request.to_dict(), indent=2))
-    response =  db_client.query(
+    response =  photo_query(
         TableName = os.environ['db_name'],
         Select = "ALL_ATTRIBUTES",
         Limit = 25,
         ConsistentRead = False,
         ScanIndexForward = False,
         KeyConditionExpression = "PK = :partitionkeyval",
-        ExpressionAttributeValues = {":partitionkeyval":{"S": "photos1"}}
+        ExpressionAttributeValues = {":partitionkeyval":{"S": "$photos"}}
     )
     print(response)
     print(item_to_dict(response["Items"]))
