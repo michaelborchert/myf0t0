@@ -32,6 +32,10 @@ def photo_query(**kwargs):
                 response = db_client.query(**kwargs)
                 #print(response)
                 output["Items"].extend(response["Items"])
+
+            if "Limit" in kwargs.keys():
+                output["Items"] = output["Items"][:int(kwargs["Limit"])]
+                
             return output
     else:
         response =  db_client.query(**kwargs)
@@ -67,10 +71,14 @@ def hello():
 @app.route("/photo", methods=['GET'])
 def get_photos():
     print(json.dumps(app.current_request.to_dict(), indent=2))
+    query_params = app.current_request.to_dict().get("query_params")
+    if not query_params:
+        query_params = {}
+
     response =  photo_query(
         TableName = os.environ['db_name'],
         Select = "ALL_ATTRIBUTES",
-        Limit = 25,
+        Limit = int(query_params.get("max_results", 25)),
         ConsistentRead = False,
         ScanIndexForward = False,
         KeyConditionExpression = "PK = :partitionkeyval",
