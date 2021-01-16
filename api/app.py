@@ -24,7 +24,7 @@ def photo_query(**kwargs):
     if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
         if (kwargs["ExpressionAttributeValues"][":partitionkeyval"].get("S", "Not Found") == "$photos"):
             output = {"Items": []}
-            for x in range(1,5):
+            for x in range(0,4):
                 kwargs["ExpressionAttributeValues"][":partitionkeyval"]["S"] = "photos"+str(x)
                 response = db_client.query(**kwargs)
                 output["Items"].extend(response["Items"])

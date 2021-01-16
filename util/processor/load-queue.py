@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import boto3
+import json
 import sys
 
 stackname = sys.argv[1]
@@ -21,7 +22,8 @@ sqs_client = boto3.client('sqs')
 objects = s3_client.list_objects(Bucket=bucketname, MaxKeys=10)
 for object in objects["Contents"]:
     if object["Key"].startswith("img/") and object["Key"] != "img/":
+        message = {"Records": [{"s3": { "object": { "key": object["Key"]}}}]}
         response = sqs_client.send_message(
             QueueUrl=queue_url,
-            MessageBody=object["Key"]
+            MessageBody=json.dumps(message)
         )
