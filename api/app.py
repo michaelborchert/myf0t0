@@ -22,20 +22,17 @@ db_client = boto3.client('dynamodb')
 
 def photo_query(**kwargs):
     if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
-        print("debug1")
         if (kwargs["ExpressionAttributeValues"][":partitionkeyval"].get("S", "Not Found") == "$photos"):
-            print("debug2")
             output = {"Items": []}
             for x in range(1,5):
-                print("debug3")
                 kwargs["ExpressionAttributeValues"][":partitionkeyval"]["S"] = "photos"+str(x)
                 response = db_client.query(**kwargs)
-                #print(response)
                 output["Items"].extend(response["Items"])
 
+            print(output)
             if "Limit" in kwargs.keys():
-                output["Items"] = output["Items"][:int(kwargs["Limit"])]
-                
+                output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"])[:int(kwargs["Limit"])]
+
             return output
     else:
         response =  db_client.query(**kwargs)
@@ -71,9 +68,24 @@ def hello():
 @app.route("/photo", methods=['GET'])
 def get_photos():
     print(json.dumps(app.current_request.to_dict(), indent=2))
+
+    expression_attribute_values = {":partitionkeyval":{"S": "$photos"}}
+
     query_params = app.current_request.to_dict().get("query_params")
     if not query_params:
         query_params = {}
+
+    range_condition = ""
+    if "start_date" in query_params.keys() and "end_date" in query_params.keys():
+        range_condition = " AND SK BETWEEN :startdate AND :enddate"
+        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
+        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
+    elif "start_date" in query_params.keys():
+        range_condition = " AND SK > :startdate"
+        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
+    elif "end_date" in query_params.keys():
+        range_condition = " AND SK <= :enddate"
+        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
 
     response =  photo_query(
         TableName = os.environ['db_name'],
@@ -81,8 +93,8 @@ def get_photos():
         Limit = int(query_params.get("max_results", 25)),
         ConsistentRead = False,
         ScanIndexForward = False,
-        KeyConditionExpression = "PK = :partitionkeyval",
-        ExpressionAttributeValues = {":partitionkeyval":{"S": "$photos"}}
+        KeyConditionExpression = "PK = :partitionkeyval" + range_condition,
+        ExpressionAttributeValues = expression_attribute_values
     )
     print(response)
     print(item_to_dict(response["Items"]))
