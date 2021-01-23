@@ -59,12 +59,88 @@ class Content extends React.Component {
 class PhotoFlow extends React.Component {
   constructor(props){
     super(props);
+    this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
+  }
+
+  handleFilterUpdate(e){
+    console.log(e);
   }
 
   render() {
     return (
+       <div>
        <h1>Photos!</h1>
+        <PhotoFilterPane filterHandler={this.handleFilterUpdate}/>
+      </div>
     )
+  }
+}
+
+class PhotoFilterPane extends React.Component {
+  constructor(props){
+    super(props);
+    this.state = {"pane_open": false}
+    this.togglePane = this.togglePane.bind(this)
+    this.applyFilters = this.applyFilters.bind(this)
+    this.handleValueChanged = this.handleValueChanged.bind(this)
+  }
+
+  togglePane(){
+    this.setState({
+      "pane_open": !this.state.pane_open
+    })
+  }
+
+  applyFilters(){
+    this.props.filterHandler(this.state)
+  }
+
+  handleValueChanged(field, value){
+    console.log(field)
+    console.log(value)
+    this.setState({[field]: value})
+  }
+
+  render(){
+    const isPaneOpen = this.state.pane_open;
+    return (
+      <div>
+        <span>Filters<button onClick={this.togglePane}> {isPaneOpen ? '-' : '+'} </button></span>
+
+        {isPaneOpen &&
+          <div>
+            <table><tbody>
+              <tr>
+                <td> Start Date</td>
+                <td> End Date</td>
+              </tr>
+              <tr>
+                <td> <FilterControl field="start_date" onValueChange={this.handleValueChanged} /> </td>
+                <td> <FilterControl field="end_date" onValueChange={this.handleValueChanged} /> </td>
+              </tr>
+            </tbody></table>
+            <button onClick={this.applyFilters}> Apply </button>
+          </div>
+        }
+      </div>
+    )
+  }
+}
+
+class FilterControl extends React.Component{
+  constructor(props){
+    super(props);
+    this.handleChange = this.handleChange.bind(this)
+  }
+
+  handleChange(e){
+    this.props.onValueChange(this.props.field, e.target.value);
+  }
+
+  render(){
+    return(
+    <input value={this.props.value} onChange={this.handleChange} />
+  )
   }
 }
 
