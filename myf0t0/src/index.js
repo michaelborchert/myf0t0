@@ -60,18 +60,112 @@ class PhotoFlow extends React.Component {
   constructor(props){
     super(props);
     this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
+    this.getThumbnails = this.getThumbnails.bind(this)
+    this.state = {photos:{}}
   }
 
-  handleFilterUpdate(e){
-    console.log(e);
+  handleFilterUpdate(filter_params){
+    //console.log(filter_params);
+
+    this.getThumbnails(filter_params)
+  }
+
+  async getThumbnails(params){
+    var searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)){
+      //console.log(key)
+      if ( value ){
+        //console.log(value)
+        searchParams.append(key, value)
+      }
+    }
+    //console.log(searchParams.toString());
+
+    var url = process.env.REACT_APP_API_ENDPOINT + "/photo?" + searchParams.toString();
+    fetch(url, {
+      method: 'GET',
+      mode: 'cors'
+    })
+    .then(res => res.json())
+    .then(
+      (result) => {
+        //console.log(result);
+        this.setState({photos: result})
+      },
+      (error) => {
+        console.error(
+          "There has been a problem with your fetch operation:",
+          error
+        )
+      }
+    )
   }
 
   render() {
+    //Assume a sorted list of photos has come back from the API.
+    var photo_groups = []
+    var curr_header = ""
+    var groups = 0
+    console.log(this.state.photos);
+    for(var i=0; i<this.state.photos.length; i++){
+      var photo = this.state.photos[i];
+      console.log(photo);
+      if (curr_header !== photo.SK.split("T")[0]){
+        curr_header = photo.SK.split("T")[0]
+        photo_groups.push({header: curr_header, photos: []});
+        groups++;
+      }
+      photo_groups[groups-1]['photos'].push(photo);
+    };
+
+
+    //console.log(photo_groups)
+
+    const listItems = photo_groups.map((photo_data) => (
+        <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} /></li>
+    ));
+
     return (
+
        <div>
        <h1>Photos!</h1>
         <PhotoFilterPane filterHandler={this.handleFilterUpdate}/>
+        <ul>
+          {listItems}
+        </ul>
       </div>
+    )
+  }
+}
+
+class PhotoGroup extends React.Component{
+  constructor(props){
+    super(props);
+  }
+  render(){
+    const listItems = this.props.data.map((photo) =>
+      <li key={photo.SK}><Thumbnail data={photo} /> </li>
+    );
+    return(
+      <div>
+        <span>{this.props.header}</span>
+        <ul className="ul_thumbnail">
+          {listItems}
+        </ul>
+      </div>
+    )
+  }
+}
+
+class Thumbnail extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return (
+      <img src={this.props.data.thumbnail_key} alt=""/>
+      //<span>Photo Goes Here!</span>
     )
   }
 }
@@ -79,7 +173,7 @@ class PhotoFlow extends React.Component {
 class PhotoFilterPane extends React.Component {
   constructor(props){
     super(props);
-    this.state = {"pane_open": false}
+    this.state = {"pane_open": false, "start_date": "", "end_date": ""}
     this.togglePane = this.togglePane.bind(this)
     this.applyFilters = this.applyFilters.bind(this)
     this.handleValueChanged = this.handleValueChanged.bind(this)
@@ -92,7 +186,9 @@ class PhotoFilterPane extends React.Component {
   }
 
   applyFilters(){
-    this.props.filterHandler(this.state)
+    let filter_params = this.state;
+    delete filter_params.pane_open
+    this.props.filterHandler(filter_params)
   }
 
   handleValueChanged(field, value){
@@ -115,8 +211,8 @@ class PhotoFilterPane extends React.Component {
                 <td> End Date</td>
               </tr>
               <tr>
-                <td> <FilterControl field="start_date" onValueChange={this.handleValueChanged} /> </td>
-                <td> <FilterControl field="end_date" onValueChange={this.handleValueChanged} /> </td>
+                <td> <FilterControl field="start_date" value={this.state.start_date} onValueChange={this.handleValueChanged} /> </td>
+                <td> <FilterControl field="end_date" value={this.state.end_date} onValueChange={this.handleValueChanged} /> </td>
               </tr>
             </tbody></table>
             <button onClick={this.applyFilters}> Apply </button>

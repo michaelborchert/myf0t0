@@ -3,7 +3,7 @@
 # from flask_cors import CORS
 # from flask_swagger import swagger
 
-from chalice import Chalice
+from chalice import Chalice, CORSConfig
 
 import boto3
 
@@ -17,6 +17,8 @@ import os
 
 app = Chalice(app_name='myf0t0-api')
 app.api.cors = True
+cors_config = CORSConfig(
+    allow_origin='*')
 
 db_client = boto3.client('dynamodb')
 
@@ -37,7 +39,6 @@ def photo_query(**kwargs):
     else:
         response =  db_client.query(**kwargs)
         return response
-
 
 def item_to_dict(item):
     if isinstance(item, dict):
@@ -65,7 +66,7 @@ def item_to_dict(item):
 def hello():
   return {"hello": "world"}
 
-@app.route("/photo", methods=['GET'])
+@app.route("/photo", methods=['GET'], cors=cors_config)
 def get_photos():
     print(json.dumps(app.current_request.to_dict(), indent=2))
 

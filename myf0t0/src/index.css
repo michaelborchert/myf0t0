@@ -4,3 +4,7 @@
 .content {
   width: 100%
 }
+
+.ul_thumbnail li{
+  display: inline
+}

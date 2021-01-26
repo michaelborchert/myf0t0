@@ -90,8 +90,8 @@ def handler(event, context):
 
                 photo_id = "{}_{}".format(timestamp.isoformat(), filename)
 
-                key = "https://{}.s3-ap-southeast-1.amazonaws.com/{}".format(BUCKET_NAME, key.replace(" ", "+"))
-                thumbnail_key = "https://{}.s3-ap-southeast-1.amazonaws.com/{}".format(BUCKET_NAME, thumbnail_key.replace(" ", "+"))
+                key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, key.replace(" ", "+"))
+                thumbnail_key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, thumbnail_key.replace(" ", "+"))
 
                 print(photo_id)
                 print(timestamp.isoformat())
