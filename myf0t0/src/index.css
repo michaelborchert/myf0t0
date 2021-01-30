@@ -8,3 +8,14 @@
 .ul_thumbnail li{
   display: inline
 }
+
+.photo-modal{
+  width: 90%;
+  max-width: none !important;
+}
+
+.focus-photo {
+  width: 90%;
+  height: 90%;
+  display: block
+}

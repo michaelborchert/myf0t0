@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+import Modal from 'react-bootstrap/Modal'
+import Button from 'react-bootstrap/Button'
 
 class Header extends React.Component {
   constructor(props){
@@ -56,18 +58,62 @@ class Content extends React.Component {
   }
 }
 
+class PhotoDetailModal extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+
+    return (
+      <Modal
+      {...this.props}
+      //size="lg"
+      aria-labelledby="contained-modal-title-vcenter"
+      dialogClassName="photo-modal"
+      centered
+    >
+      <Modal.Header closeButton>
+        <Modal.Title id="contained-modal-title-vcenter">
+          Photo Name
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <img className="focus-photo" src={this.props.photo.GSI1SK} alt="" />
+      </Modal.Body>
+      <Modal.Footer>
+        <Button onClick={this.props.onHide}>Close</Button>
+      </Modal.Footer>
+    </Modal>
+  );
+  }
+}
 class PhotoFlow extends React.Component {
   constructor(props){
     super(props);
     this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
+    this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
+    this.closePhotoFocus = this.closePhotoFocus.bind(this)
     this.getThumbnails = this.getThumbnails.bind(this)
-    this.state = {photos:{}}
+    this.state = {photos:{}, focusPhoto:{}, focusModalVisible:false}
   }
 
   handleFilterUpdate(filter_params){
     //console.log(filter_params);
 
     this.getThumbnails(filter_params)
+  }
+
+  handlePhotoFocus(photo){
+    this.setState({focusPhoto: photo, focusModalVisible: true});
+  }
+
+  closePhotoFocus(){
+    this.setState({focusModalVisible: false});
+  }
+
+  componentDidMount(){
+    this.getThumbnails({});
   }
 
   async getThumbnails(params){
@@ -122,17 +168,23 @@ class PhotoFlow extends React.Component {
     //console.log(photo_groups)
 
     const listItems = photo_groups.map((photo_data) => (
-        <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} /></li>
+        <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
     ));
 
     return (
-
        <div>
        <h1>Photos!</h1>
         <PhotoFilterPane filterHandler={this.handleFilterUpdate}/>
         <ul>
           {listItems}
         </ul>
+
+          <PhotoDetailModal
+            show={this.state.focusModalVisible}
+            onHide={this.closePhotoFocus}
+            photo={this.state.focusPhoto}
+          />
+
       </div>
     )
   }
@@ -144,7 +196,7 @@ class PhotoGroup extends React.Component{
   }
   render(){
     const listItems = this.props.data.map((photo) =>
-      <li key={photo.SK}><Thumbnail data={photo} /> </li>
+      <li key={photo.SK}><Thumbnail data={photo} onClickHandler={this.props.photoFocusHandler}/> </li>
     );
     return(
       <div>
@@ -160,11 +212,16 @@ class PhotoGroup extends React.Component{
 class Thumbnail extends React.Component{
   constructor(props){
     super(props);
+    this.clickHandler = this.clickHandler.bind(this)
+  }
+
+  clickHandler(){
+    this.props.onClickHandler(this.props.data)
   }
 
   render(){
     return (
-      <img src={this.props.data.thumbnail_key} alt=""/>
+      <img src={this.props.data.thumbnail_key} alt="" onClick={this.clickHandler}/>
       //<span>Photo Goes Here!</span>
     )
   }
@@ -278,6 +335,7 @@ class App extends React.Component {
       <div>
         <Header navHandler={this.viewChangeHandler} />
         <Content view={view}/>
+        <div id="modal-root"></div>
       </div>
     )
   }
