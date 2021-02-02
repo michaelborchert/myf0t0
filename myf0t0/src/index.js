@@ -64,6 +64,11 @@ class PhotoDetailModal extends React.Component{
   }
 
   render(){
+    console.log(this.props)
+    var photoName = ""
+    if ("SK" in this.props.photo){
+      photoName = this.props.photo.SK.split("_")[1];
+    }
 
     return (
       <Modal
@@ -75,7 +80,7 @@ class PhotoDetailModal extends React.Component{
     >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-vcenter">
-          Photo Name
+          {photoName}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>

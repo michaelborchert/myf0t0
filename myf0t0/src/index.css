@@ -10,12 +10,16 @@
 }
 
 .photo-modal{
+
   width: 90%;
   max-width: none !important;
+  height: 90%;
+  max-height: 900px;
+
 }
 
 .focus-photo {
-  width: 90%;
-  height: 90%;
+  /*width: 90%;*/
+  height: 800px;
   display: block
 }

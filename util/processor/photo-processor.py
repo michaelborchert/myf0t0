@@ -83,7 +83,10 @@ def handler(event, context):
                 thumbnail_filename = file_id + ".thumbnail"
                 im.save("/tmp/" + thumbnail_filename, "JPEG")
                 thumbnail_key = "thmb/"+stripped_key
-                s3.Bucket(BUCKET_NAME).upload_file("/tmp/"+thumbnail_filename, thumbnail_key)
+                s3.Bucket(BUCKET_NAME).upload_file(
+                    "/tmp/"+thumbnail_filename,
+                    thumbnail_key,
+                    ExtraArgs={'ACL': 'public-read'})
 
                 #Extract accessible EXIF data
                 timestamp = datetime.datetime.strptime(exif_data["DateTimeOriginal"], "%Y:%m:%d %H:%M:%S")

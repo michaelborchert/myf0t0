@@ -49,7 +49,7 @@ Resources:
     Properties:
       AccessControl: PublicRead
       WebsiteConfiguration:
-        IndexDocument: index.html
+        IndexDocument: index.js
         ErrorDocument: error.html
   MetadataDb:
     Type: AWS::DynamoDB::Table
@@ -220,14 +220,14 @@ Resources:
       FunctionName: !Ref ApiFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/*"
-      EndpointConfiguration:
-        Types:
-          - Regional
   RestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: "myf0t0"
       Description: "API Gateway for MyF0t0"
+      EndpointConfiguration:
+        Types:
+          - Regional
   ApiStage:
     Type: AWS::ApiGateway::Stage
     Properties:
@@ -280,3 +280,117 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub >-
           arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: True
+        UnusedAccountValidityDays: 14
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      UserPoolName: !Sub 'myf0t0-${AWS::StackName}'
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub 'myf0t0-${AWS::StackName}'
+      UserPoolId: !Ref UserPool
+  UserPoolAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AllowedOAuthFlowsUserPoolClient: True
+      CallbackURLs:
+        - http://localhost:3000/
+        - !Join
+          - ''
+          - - "https://"
+            - !GetAtt
+              - AppBucket
+              - WebsiteURL
+            - "/"
+      ClientName: "MyF0t0"
+      DefaultRedirectURI: "http://localhost:3000/"
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+      UserPoolId: !Ref UserPool
+  ResourceServer:
+    Type: AWS::Cognito::UserPoolResourceServer
+    Properties:
+      Identifier: !Sub https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStage}
+      Name: "MyF0t0 Resource Server"
+      UserPoolId: !Ref UserPool
+  AdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Sub "us-east-1:${UserPoolAppClient}"
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Description: Site Administrator Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+  ViewerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Sub "us-east-1:${UserPoolAppClient}"
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Description: Site Photo Viewer Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      Description: Administrators
+      GroupName: admin
+      Precedence: 0
+      RoleArn: !GetAtt AdminRole.Arn
+      UserPoolId: !Ref UserPool
+  ViewerGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      Description: Administrators
+      GroupName: viewers
+      Precedence: 2
+      RoleArn: !GetAtt ViewerRole.Arn
+      UserPoolId: !Ref UserPool
+Outputs:
+  CognitoClientId:
+    Value: !Ref UserPoolAppClient
+    Description: ClientID for Cognito User Pool
+  APIEndpoint:
+    Value: !Sub https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStage}
+    Description: API Endpoint for REST API's
