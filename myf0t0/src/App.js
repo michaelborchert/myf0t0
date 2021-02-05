@@ -4,17 +4,45 @@ import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 
+import Amplify,{Auth} from 'aws-amplify';
 import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
+
+Amplify.configure({
+  Auth: {
+    region: 'us-east-2',
+    userPoolId: 'us-east-2_oQdtzjMQ1',
+    userPoolWebClientId: '55i8vm5ina7g9v1j86cpmp6gjv',
+    mandatorySignIn: true,
+    oauth: {
+              domain: 'myf0t0-teststack2',
+              scope: ['phone', 'email', 'profile', 'openid', 'aws.cognito.signin.user.admin'],
+              redirectSignIn: 'http://localhost:3000/',
+              redirectSignOut: 'http://localhost:3000/',
+              responseType: 'code' // or 'token', note that REFRESH token will only be generated when the responseType is code
+          }
+    }
+  }
+);
 
 class Header extends React.Component {
   constructor(props){
     super(props);
 
-    this.handleNavClick = this.handleNavClick.bind(this)
+    this.handleNavClick = this.handleNavClick.bind(this);
+    this.handleSignoutClick = this.handleSignoutClick.bind(this);
   }
 
   handleNavClick(view){
     this.props.navHandler(view);
+  }
+
+  async handleSignoutClick(){
+    try {
+        await Auth.signOut();
+        window.location.reload(false);
+    } catch (error) {
+        console.log('error signing out: ', error);
+    }
   }
 
   render() {
@@ -22,7 +50,7 @@ class Header extends React.Component {
       <NavButton view="Photos" navClickHandler={this.handleNavClick} />
       <NavButton view="Galleries" navClickHandler={this.handleNavClick} />
       <NavButton view="Settings" navClickHandler={this.handleNavClick} />
-      <AmplifySignOut />
+      <Button onClick={this.handleSignoutClick}> Sign Out </Button>
     </div>);
   }
 }
