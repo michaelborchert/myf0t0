@@ -5,6 +5,10 @@ Parameters:
     Type: String
     Description: Enter the Name of an existing S3 bucket that will house photos and thumbnails.  Leave blank to create a new bucket.
     Default: ""
+  AdminEmail:
+    Type: String
+    Description: Email address of the administrator of the myf0t0 site.
+    Default: michael.borchert@gmail.com
 Conditions:
   NewBucket: !Equals [!Ref OldPhotoBucketName, ""]
 Resources:
@@ -386,6 +390,25 @@ Resources:
       GroupName: viewers
       Precedence: 2
       RoleArn: !GetAtt ViewerRole.Arn
+      UserPoolId: !Ref UserPool
+  AdminUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      DesiredDeliveryMediums:
+        - EMAIL
+      Username: !Ref AdminEmail
+      UserPoolId: !Ref UserPool
+      UserAttributes:
+        - Name: email
+          Value: !Ref AdminEmail
+        - Name: email_verified
+          Value: True
+  AdminUserGroupAttachment:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    DependsOn: AdminUser
+    Properties:
+      GroupName: admin
+      Username: !Ref AdminEmail
       UserPoolId: !Ref UserPool
 Outputs:
   CognitoClientId:
