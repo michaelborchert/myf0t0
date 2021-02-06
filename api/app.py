@@ -18,7 +18,8 @@ import os
 app = Chalice(app_name='myf0t0-api')
 app.api.cors = True
 cors_config = CORSConfig(
-    allow_origin='*')
+    allow_origin='*',
+    allow_credentials=True)
 
 db_client = boto3.client('dynamodb')
 

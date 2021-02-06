@@ -232,6 +232,15 @@ Resources:
       EndpointConfiguration:
         Types:
           - Regional
+  ApiAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !GetAtt UserPool.Arn
+      RestApiId: !Ref RestApi
+      Type: COGNITO_USER_POOLS
+      Name: !Sub "myf0t0-${AWS::StackName}"
   ApiStage:
     Type: AWS::ApiGateway::Stage
     Properties:
@@ -264,7 +273,13 @@ Resources:
     Properties:
       RestApiId: !Ref RestApi
       ResourceId: !Ref PhotoResource
-      AuthorizationType: NONE
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
       HttpMethod: GET
       Integration:
         Type: AWS_PROXY
@@ -277,7 +292,13 @@ Resources:
     Properties:
       RestApiId: !Ref RestApi
       ResourceId: !Ref PhotoResource
-      AuthorizationType: NONE
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
       HttpMethod: PUT
       Integration:
         Type: AWS_PROXY

@@ -161,20 +161,12 @@ class PhotoFlow extends React.Component {
   }
 
   async getThumbnails(params){
-    var searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)){
-      //console.log(key)
-      if ( value ){
-        //console.log(value)
-        searchParams.append(key, value)
-      }
-    }
-    console.log(searchParams.toString());
-
+    var currentSession = await Auth.currentSession()
     const apiName = 'myf0t0';
     const path = '/photo';
     const myInit = { // OPTIONAL
         queryStringParameters: params,
+        headers: {Authorization: currentSession.accessToken.jwtToken}
     };
 
     API
@@ -186,25 +178,6 @@ class PhotoFlow extends React.Component {
       .catch(error => {
         console.log(error.response);
      });
-    /*var url = process.env.REACT_APP_API_ENDPOINT + "/photo?" + searchParams.toString();
-    fetch(url, {
-      method: 'GET',
-      mode: 'cors'
-    })
-    .then(res => res.json())
-    .then(
-      (result) => {
-        console.log(result);
-        this.setState({photos: result})
-      },
-      (error) => {
-        console.error(
-          "There has been a problem with your fetch operation:",
-          error
-        )
-      }
-    )*/
-
   }
 
   render() {
