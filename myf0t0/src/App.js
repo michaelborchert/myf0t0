@@ -4,7 +4,7 @@ import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 
-import Amplify,{Auth} from 'aws-amplify';
+import Amplify,{Auth, API} from 'aws-amplify';
 import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
 
 Amplify.configure({
@@ -20,6 +20,14 @@ Amplify.configure({
               redirectSignOut: 'http://localhost:3000/',
               responseType: 'code' // or 'token', note that REFRESH token will only be generated when the responseType is code
           }
+    },
+    API: {
+        endpoints: [
+            {
+                name: "myf0t0",
+                endpoint: process.env.REACT_APP_API_ENDPOINT
+            }
+        ]
     }
   }
 );
@@ -163,7 +171,22 @@ class PhotoFlow extends React.Component {
     }
     console.log(searchParams.toString());
 
-    var url = process.env.REACT_APP_API_ENDPOINT + "/photo?" + searchParams.toString();
+    const apiName = 'myf0t0';
+    const path = '/photo';
+    const myInit = { // OPTIONAL
+        queryStringParameters: params,
+    };
+
+    API
+      .get(apiName, path, myInit)
+      .then(response => {
+        // Add your code here
+        this.setState({photos: response})
+      })
+      .catch(error => {
+        console.log(error.response);
+     });
+    /*var url = process.env.REACT_APP_API_ENDPOINT + "/photo?" + searchParams.toString();
     fetch(url, {
       method: 'GET',
       mode: 'cors'
@@ -180,7 +203,8 @@ class PhotoFlow extends React.Component {
           error
         )
       }
-    )
+    )*/
+
   }
 
   render() {
