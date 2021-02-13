@@ -1,0 +1,21 @@
+{
+  "Statement" : [
+    {
+      "Effect" : "Deny",
+      "Action" : "Update:Replace",
+      "Principal": "*",
+      "Resource" : "*",
+      "Condition" : {
+        "StringEquals" : {
+          "ResourceType" : ["AWS::Cognito::UserPoolUser"]
+        }
+      }
+    },
+    {
+      "Effect" : "Allow",
+      "Action" : "Update:*",
+      "Principal": "*",
+      "Resource" : "*"
+    }
+  ]
+}

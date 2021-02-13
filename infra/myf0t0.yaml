@@ -48,6 +48,24 @@ Resources:
                   -
                     Name: "prefix"
                     Value: "img/"
+  PhotoBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: NewBucket
+    DependsOn:
+      - AdminRole
+      - ViewerRole
+    Properties:
+      Bucket: !Ref PhotoBucket
+      PolicyDocument:
+         Statement:
+          - Action: 's3:*'
+            Effect: Allow
+            Resource:
+            - !Sub 'arn:aws:s3:::${PhotoBucket}/*'
+            Principal:
+              AWS:
+              - !GetAtt ViewerRole.Arn
+              - !GetAtt AdminRole.Arn
   AppBucket:
     Type: AWS::S3::Bucket
     Properties:
