@@ -4,24 +4,11 @@ import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 
-import Amplify,{Auth, API, Storage, Hub} from 'aws-amplify';
+import Amplify,{Auth, API} from 'aws-amplify';
 import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
 
-const AWS = require('aws-sdk')
 
-var s3;
 
-const listener = (data) => {
-    switch (data.payload.event) {
-        case 'signIn':
-          Auth.currentCredentials()
-          .then(creds => AWS.config.update({accessKeyId: creds.accessKeyId, secretAccessKey: creds.secretAccessKey}))
-          .then(s3 = new AWS.S3);
-          break;
-    }
-}
-
-Hub.listen('auth', listener);
 
 Amplify.configure({
   Auth: {
@@ -44,15 +31,8 @@ Amplify.configure({
               endpoint: process.env.REACT_APP_API_ENDPOINT
           }
       ]
-  },
-  Storage: {
-    AWSS3: {
-      bucket: 'teststack2-photobucket-1ajj4e1anfhh6', //REQUIRED -  Amazon S3 bucket name
-      region: 'us-east-2', //OPTIONAL -  Amazon service region
-    }
   }
-  }
-);
+});
 
 class Header extends React.Component {
   constructor(props){
@@ -194,7 +174,6 @@ class PhotoFlow extends React.Component {
     API
       .get(apiName, path, myInit)
       .then(response => {
-        // Add your code here
         this.setState({photos: response})
       })
       .catch(error => {
@@ -218,9 +197,6 @@ class PhotoFlow extends React.Component {
       }
       photo_groups[groups-1]['photos'].push(photo);
     };
-
-
-    //console.log(photo_groups)
 
     const listItems = photo_groups.map((photo_data) => (
         <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
@@ -271,27 +247,11 @@ class Thumbnail extends React.Component{
     this.state = {};
   }
 
-  componentDidMount () {
-
-  }
-
   clickHandler(){
     this.props.onClickHandler(this.props.data)
   }
 
   render(){
-    const myBucket = 'teststack2-photobucket-1ajj4e1anfhh6'
-    const myKey = this.props.data.thumbnail_key
-    const signedUrlExpireSeconds = 60 * 5
-    if(s3){
-      const url = s3.getSignedUrl('getObject', {
-          Bucket: myBucket,
-          Key: myKey,
-          Expires: signedUrlExpireSeconds
-      })
-      console.log(url);
-    }
-
     return (
         <img src={this.props.data.thumbnail_key} alt="" onClick={this.clickHandler}/>
     );
@@ -403,11 +363,11 @@ class App extends React.Component {
   render() {
     const view = this.state.view;
     return (
-      <div>
-        <Header navHandler={this.viewChangeHandler} />
-        <Content view={view}/>
-        <div id="modal-root"></div>
-      </div>
+        <div>
+          <Header navHandler={this.viewChangeHandler} />
+          <Content view={view} />
+          <div id="modal-root"></div>
+        </div>
     )
   }
 }
