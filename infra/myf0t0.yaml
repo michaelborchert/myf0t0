@@ -30,13 +30,22 @@ Resources:
             Resource: !GetAtt ProcessingQueue.Arn
             Principal:
               AWS: "*"
-
   PhotoBucket:
     Type: AWS::S3::Bucket
     Condition: NewBucket
     DependsOn: ProcessingQueue
     Properties:
-      AccessControl: PublicRead
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - 'authorization'
+            AllowedMethods:
+              - GET
+              - PUT
+              - DELETE
+            AllowedOrigins:
+              - '*'
+            MaxAge: '3000'
       NotificationConfiguration:
         QueueConfigurations:
           -
@@ -54,6 +63,7 @@ Resources:
     DependsOn:
       - AdminRole
       - ViewerRole
+      - LambdaRole
     Properties:
       Bucket: !Ref PhotoBucket
       PolicyDocument:
@@ -66,6 +76,7 @@ Resources:
               AWS:
               - !GetAtt ViewerRole.Arn
               - !GetAtt AdminRole.Arn
+              - !GetAtt LambdaRole.Arn
   AppBucket:
     Type: AWS::S3::Bucket
     Properties:

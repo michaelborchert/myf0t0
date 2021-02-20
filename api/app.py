@@ -22,6 +22,7 @@ cors_config = CORSConfig(
     allow_credentials=True)
 
 db_client = boto3.client('dynamodb')
+s3_client = boto3.client('s3')
 
 def photo_query(**kwargs):
     if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
@@ -63,6 +64,29 @@ def item_to_dict(item):
             output.append(item_to_dict(sub_item))
         return output
 
+def create_presigned_url(bucket_name, object_name, expiration=3600):
+    """Generate a presigned URL to share an S3 object
+
+    :param bucket_name: string
+    :param object_name: string
+    :param expiration: Time in seconds for the presigned URL to remain valid
+    :return: Presigned URL as string. If error, returns None.
+    """
+
+    # Generate a presigned URL for the S3 object
+    s3_client = boto3.client('s3')
+    try:
+        response = s3_client.generate_presigned_url('get_object',
+                                                    Params={'Bucket': bucket_name,
+                                                            'Key': object_name},
+                                                    ExpiresIn=expiration)
+    except ClientError as e:
+        logging.error(e)
+        return None
+
+    # The response contains the presigned URL
+    return response
+
 @app.route("/", methods=['GET'])
 def hello():
   return {"hello": "world"}
@@ -101,7 +125,28 @@ def get_photos():
     print(response)
     print(item_to_dict(response["Items"]))
 
-    return item_to_dict(response["Items"])
+    items = item_to_dict(response["Items"])
+    for item in items:
+        id = item["GSI1SK"]
+        print(id)
+        id_arr = id.split('/', 1)
+        print(id_arr)
+        bucket = id_arr[0]
+        print(bucket)
+        key = id_arr[1]
+        print(key)
+        expiration = 3600
+        item["signed_url"] = create_presigned_url(bucket, key, expiration)
+
+        thumbnail_id = item["thumbnail_key"]
+        thumbnail_id_arr = thumbnail_id.split('/', 1)
+        thumbnail_bucket = thumbnail_id_arr[0]
+        thumbnail_key = thumbnail_id_arr[1]
+        thumbnail_expiration = 3600
+        item["thumbnail_signed_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, thumbnail_expiration)
+
+    print(items)
+    return items
 
 @app.route("/photo", methods=['PUT'])
 def get_photos():

@@ -125,7 +125,7 @@ class PhotoDetailModal extends React.Component{
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <img className="focus-photo" src={this.props.photo.GSI1SK} alt="" />
+        <img className="focus-photo" src={this.props.photo.signed_url} alt="" />
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={this.props.onHide}>Close</Button>
@@ -253,7 +253,7 @@ class Thumbnail extends React.Component{
 
   render(){
     return (
-        <img src={this.props.data.thumbnail_key} alt="" onClick={this.clickHandler}/>
+        <img src={this.props.data.thumbnail_signed_url} alt="" onClick={this.clickHandler}/>
     );
   }
 }

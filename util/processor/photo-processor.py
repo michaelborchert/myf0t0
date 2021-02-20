@@ -93,13 +93,16 @@ def handler(event, context):
 
                 photo_id = "{}_{}".format(timestamp.isoformat(), filename)
 
-                key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, key.replace(" ", "+"))
-                thumbnail_key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, thumbnail_key.replace(" ", "+"))
+                #key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, key.replace(" ", "+"))
+                #thumbnail_key = "https://{}.s3.amazonaws.com/{}".format(BUCKET_NAME, thumbnail_key.replace(" ", "+"))
 
+                key = "{}/img/{}".format(BUCKET_NAME, stripped_key)
+                thumbnail_key = "{}/thmb/{}".format(BUCKET_NAME, stripped_key)
                 print(photo_id)
                 print(timestamp.isoformat())
                 print(key)
                 print(thumbnail_key)
+
 
                 #Write record to Dynamo
                 my_item = {
