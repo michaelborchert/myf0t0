@@ -93,7 +93,7 @@ def hello():
 
 @app.route("/photo", methods=['GET'], cors=cors_config)
 def get_photos():
-    print(json.dumps(app.current_request.to_dict(), indent=2))
+    #print(json.dumps(app.current_request.to_dict(), indent=2))
 
     expression_attribute_values = {":partitionkeyval":{"S": "$photos"}}
 
@@ -122,22 +122,22 @@ def get_photos():
         KeyConditionExpression = "PK = :partitionkeyval" + range_condition,
         ExpressionAttributeValues = expression_attribute_values
     )
-    print(response)
-    print(item_to_dict(response["Items"]))
+    #print(response)
+    #print(item_to_dict(response["Items"]))
 
     items = item_to_dict(response["Items"])
     for item in items:
         id = item["GSI1SK"]
-        print(id)
+        #print(id)
         id_arr = id.split('/', 1)
-        print(id_arr)
+        #print(id_arr)
         bucket = id_arr[0]
-        print(bucket)
+        #print(bucket)
         key = id_arr[1]
-        print(key)
+        #print(key)
         expiration = 3600
         item["signed_url"] = create_presigned_url(bucket, key, expiration)
-
+        
         thumbnail_id = item["thumbnail_key"]
         thumbnail_id_arr = thumbnail_id.split('/', 1)
         thumbnail_bucket = thumbnail_id_arr[0]
@@ -145,7 +145,7 @@ def get_photos():
         thumbnail_expiration = 3600
         item["thumbnail_signed_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, thumbnail_expiration)
 
-    print(items)
+    #print(items)
     return items
 
 @app.route("/photo", methods=['PUT'])

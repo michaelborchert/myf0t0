@@ -3,6 +3,7 @@
 from PIL import Image
 from PIL.ExifTags import TAGS
 from dateutil import parser
+from urllib.parse import unquote_plus
 import datetime
 import pytz
 import os
@@ -10,6 +11,7 @@ import os
 import boto3
 import json
 import hashlib
+
 
 BUCKET_NAME = os.environ['photo_bucket']
 THUMBNAIL_SIZE = 128, 128
@@ -68,11 +70,11 @@ def handler(event, context):
             filename = stripped_key.split("/")[-1]
             file_id = filename.split(".")[0]
             file_type = filename.split(".")[-1]
-            print(stripped_key + " " + filename + " " + file_id + " " + file_type)
+            print(key + " " + stripped_key + " " + filename + " " + file_id + " " + file_type)
 
             #Only process JPEG images
             if file_type in ["jpg", "JPG", "jpeg", "JPEG"]:
-
+                key = unquote_plus(key)
                 s3.Bucket(BUCKET_NAME).download_file(key, "/tmp/"+filename)
 
                 #Generate and save thumbnail
@@ -85,8 +87,7 @@ def handler(event, context):
                 thumbnail_key = "thmb/"+stripped_key
                 s3.Bucket(BUCKET_NAME).upload_file(
                     "/tmp/"+thumbnail_filename,
-                    thumbnail_key,
-                    ExtraArgs={'ACL': 'public-read'})
+                    thumbnail_key)
 
                 #Extract accessible EXIF data
                 timestamp = datetime.datetime.strptime(exif_data["DateTimeOriginal"], "%Y:%m:%d %H:%M:%S")
@@ -105,16 +106,16 @@ def handler(event, context):
 
 
                 #Write record to Dynamo
-                my_item = {
-                    "PK": "photos{}".format(get_index_hash(filename)),
-                    "SK": photo_id,
-                    "GSI1PK": "None",
-                    "GSI1SK": key,
-                    "exif": exif_data
-                }
-
-
-                print(dict_to_item(exif_data))
+                # my_item = {
+                #     "PK": "photos{}".format(get_index_hash(filename)),
+                #     "SK": photo_id,
+                #     "GSI1PK": "None",
+                #     "GSI1SK": key,
+                #     "exif": exif_data
+                # }
+                #
+                #
+                # print(dict_to_item(exif_data))
 
                 response = dynamo.put_item(
                         TableName=os.environ['db_name'],
