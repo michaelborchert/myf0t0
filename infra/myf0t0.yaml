@@ -460,6 +460,37 @@ Resources:
       GroupName: admin
       Username: !Ref AdminEmail
       UserPoolId: !Ref UserPool
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: True
+      CognitoIdentityProviders:
+        - ClientId: !Ref UserPoolAppClient
+          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}"
+          ServerSideTokenCheck: TRUE
+      DeveloperProviderName: !Ref UserPoolDomain
+  AdminIdentityPoolAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        "authenticated": !GetAtt ViewerRole.Arn
+        "unauthenticated": !GetAtt ViewerRole.Arn
+      RoleMappings:
+        "userpool1":
+          IdentityProvider: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}:${UserPoolAppClient}"
+          AmbiguousRoleResolution: Deny
+          Type: Rules
+          RulesConfiguration:
+            Rules:
+              - Claim: "cognito:groups"
+                MatchType: "Contains"
+                Value: "admin"
+                RoleARN: !GetAtt AdminRole.Arn
+              - Claim: "cognito:groups"
+                MatchType: "Contains"
+                Value: "viewers"
+                RoleARN: !GetAtt ViewerRole.Arn
 Outputs:
   CognitoClientId:
     Value: !Ref UserPoolAppClient

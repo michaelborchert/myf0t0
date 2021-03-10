@@ -24,11 +24,11 @@ Get galleries for photo (GSI1 - PK = s3_key)
 
 id = filename
 
-PK                          SK            GSI1PK    GSI1SK
-'photos[0..4{hash of id}]'  date+name(id) rating    s3_key        <metadata - including tags>
-                            tag           tag       id            <s3_key>
+PK                          SK                  GSI1PK    GSI1SK
+'photos[0..4{hash of id}]'  date+name(photo id) rating    s3_key      <metadata - including tags>
+                            tag                 tag       photo id    <s3_key>
 
-gallery_id (name)           gallery_id                            <metadata>
-                            id            s3_key    gallery_id
+gallery_id (name)           gallery_id                                <metadata>
+                            photo id            s3_key    gallery_id
 
 https://www.citusdata.com/blog/2016/03/30/five-ways-to-paginate/

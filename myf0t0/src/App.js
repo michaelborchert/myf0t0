@@ -7,8 +7,20 @@ import Button from 'react-bootstrap/Button'
 import Amplify,{Auth, API} from 'aws-amplify';
 import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
 
+var AmazonCognitoIdentity = require('amazon-cognito-auth-js');
 
+// Convert my string in the env var to a comma separated array
+const Arr = string => string.split(",")
 
+// define the config for the Auth JS SDK
+var authData = {
+  ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
+  AppWebDomain: process.env.REACT_APP_COGNITO_APP_DOMAIN,
+  TokenScopesArray: Arr(process.env.REACT_APP_COGNITO_SCOPES),
+  RedirectUriSignIn: process.env.REACT_APP_COGNITO_SIGN_IN_REDIRECT_URI,
+  RedirectUriSignOut: process.env.REACT_APP_COGNITO_SIGN_OUT_REDIRECT_URI,
+  UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID
+}
 
 Amplify.configure({
   Auth: {
@@ -37,22 +49,10 @@ Amplify.configure({
 class Header extends React.Component {
   constructor(props){
     super(props);
-
-    this.handleNavClick = this.handleNavClick.bind(this);
-    this.handleSignoutClick = this.handleSignoutClick.bind(this);
   }
 
-  handleNavClick(view){
+  handleNavClick=(view)=>{
     this.props.navHandler(view);
-  }
-
-  async handleSignoutClick(){
-    try {
-        await Auth.signOut();
-        window.location.reload(false);
-    } catch (error) {
-        console.log('error signing out: ', error);
-    }
   }
 
   render() {
@@ -60,7 +60,6 @@ class Header extends React.Component {
       <NavButton view="Photos" navClickHandler={this.handleNavClick} />
       <NavButton view="Galleries" navClickHandler={this.handleNavClick} />
       <NavButton view="Settings" navClickHandler={this.handleNavClick} />
-      <Button onClick={this.handleSignoutClick}> Sign Out </Button>
     </div>);
   }
 }
@@ -163,16 +162,16 @@ class PhotoFlow extends React.Component {
   }
 
   async getThumbnails(params){
-    var currentSession = await Auth.currentSession()
-    const apiName = 'myf0t0';
-    const path = '/photo';
-    const myInit = { // OPTIONAL
-        queryStringParameters: params,
-        headers: {Authorization: currentSession.accessToken.jwtToken}
-    };
-
-    API
-      .get(apiName, path, myInit)
+    const requestOptions = {
+       method: 'GET',
+       headers: {
+         'Content-Type': 'application/json',
+         Authorization: this.state.accessToken.jwtToken
+       },
+       queryStringParameters: params
+     };
+     const url = process.env.REACT_APP_API_ENDPOINT + "/photo"
+     fetch(url, requestOptions)
       .then(response => {
         this.setState({photos: response})
       })
@@ -349,22 +348,60 @@ class Settings extends React.Component {
 }
 
 class App extends React.Component {
+  saveSession = (session) => {
+    console.log("Sign in success");
+    console.log(session)
+    var idToken = session.getIdToken().getJwtToken();
+    if (idToken) {
+      var payload = idToken.split('.')[1];
+      var auth_data = JSON.parse(atob(payload));
+      this.setState({"authData": auth_data})
+    }
+    var accToken = session.getAccessToken().getJwtToken();
+    if (accToken) {
+      var payload = accToken.split('.')[1];
+      var formatted = JSON.stringify(atob(payload), null, 4);
+      this.setState({"accessToken": formatted});
+    }
+    var refToken = session.getRefreshToken().getToken();
+    if (refToken) {
+      this.setState({"refreshToken": refToken.substring(1, 20)});
+    }
+  }
+
   constructor(props){
     super(props);
     this.state = {view: "Photos"}
 
-    this.viewChangeHandler = this.viewChangeHandler.bind(this);
+    this.auth = new AmazonCognitoIdentity.CognitoAuth(authData);
+    this.auth.userhandler = {
+      onSuccess: this.saveSession,
+      onFailure: function(err) {
+        console.log("Error!");
+        console.log(err)
+      }
+    };
+    this.auth.useCodeGrantFlow()
+
+    var curUrl = window.location.href;
+    this.auth.parseCognitoWebResponse(curUrl);
+    if (this.auth.getCurrentUser()) {
+      this.auth.getSession();
+    }
   }
 
-  viewChangeHandler(view){
+  viewChangeHandler=(view)=>{
     this.setState({view})
   }
 
   render() {
     const view = this.state.view;
+    const activeSession = this.state.authData ? true : false
+
     return (
         <div>
           <Header navHandler={this.viewChangeHandler} />
+          <button onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
           <Content view={view} />
           <div id="modal-root"></div>
         </div>
@@ -372,4 +409,5 @@ class App extends React.Component {
   }
 }
 
-export default withAuthenticator(App);
+//export default withAuthenticator(App);
+export default App;
