@@ -1,50 +1,19 @@
 import React from 'react';
-import ReactDOM from 'react-dom'
 import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 
-import Amplify,{Auth, API} from 'aws-amplify';
-import { withAuthenticator, AmplifySignOut } from '@aws-amplify/ui-react';
-
 var AmazonCognitoIdentity = require('amazon-cognito-auth-js');
-
-// Convert my string in the env var to a comma separated array
-const Arr = string => string.split(",")
 
 // define the config for the Auth JS SDK
 var authData = {
   ClientId: process.env.REACT_APP_COGNITO_CLIENT_ID,
   AppWebDomain: process.env.REACT_APP_COGNITO_APP_DOMAIN,
-  TokenScopesArray: Arr(process.env.REACT_APP_COGNITO_SCOPES),
+  TokenScopesArray: process.env.REACT_APP_COGNITO_SCOPES.split(","),
   RedirectUriSignIn: process.env.REACT_APP_COGNITO_SIGN_IN_REDIRECT_URI,
   RedirectUriSignOut: process.env.REACT_APP_COGNITO_SIGN_OUT_REDIRECT_URI,
   UserPoolId: process.env.REACT_APP_COGNITO_USER_POOL_ID
 }
-
-Amplify.configure({
-  Auth: {
-    region: 'us-east-2',
-    userPoolId: 'us-east-2_oQdtzjMQ1',
-    userPoolWebClientId: '55i8vm5ina7g9v1j86cpmp6gjv',
-    mandatorySignIn: true,
-    oauth: {
-              domain: 'myf0t0-teststack2',
-              scope: ['phone', 'email', 'profile', 'openid', 'aws.cognito.signin.user.admin'],
-              redirectSignIn: 'http://localhost:3000/',
-              redirectSignOut: 'http://localhost:3000/',
-              responseType: 'code' // or 'token', note that REFRESH token will only be generated when the responseType is code
-          }
-  },
-  API: {
-      endpoints: [
-          {
-              name: "myf0t0",
-              endpoint: process.env.REACT_APP_API_ENDPOINT
-          }
-      ]
-  }
-});
 
 class Header extends React.Component {
   constructor(props){
@@ -90,7 +59,7 @@ class Content extends React.Component {
   render(){
     return (
       <div className="content">
-        {this.props.view === "Photos" && <PhotoFlow />}
+        {this.props.view === "Photos" && <PhotoFlow jwt={this.props.jwt}/>}
         {this.props.view === "Galleries" && <Galleries />}
         {this.props.view === "Settings" && <Settings />}
       </div>
@@ -162,22 +131,31 @@ class PhotoFlow extends React.Component {
   }
 
   async getThumbnails(params){
-    const requestOptions = {
-       method: 'GET',
-       headers: {
-         'Content-Type': 'application/json',
-         Authorization: this.state.accessToken.jwtToken
-       },
-       queryStringParameters: params
-     };
-     const url = process.env.REACT_APP_API_ENDPOINT + "/photo"
-     fetch(url, requestOptions)
-      .then(response => {
-        this.setState({photos: response})
-      })
-      .catch(error => {
-        console.log(error.response);
-     });
+    console.log(this.props.jwt);
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        },
+        queryStringParameters: params
+      };
+      const url = process.env.REACT_APP_API_ENDPOINT + "/photo"
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          this.setState({photos: data})
+        })
+        .catch(error => {
+          console.log(error.response);
+       });
+    } else {
+      console.log("No JWT Token yet.");
+    }
+
   }
 
   render() {
@@ -351,22 +329,7 @@ class App extends React.Component {
   saveSession = (session) => {
     console.log("Sign in success");
     console.log(session)
-    var idToken = session.getIdToken().getJwtToken();
-    if (idToken) {
-      var payload = idToken.split('.')[1];
-      var auth_data = JSON.parse(atob(payload));
-      this.setState({"authData": auth_data})
-    }
-    var accToken = session.getAccessToken().getJwtToken();
-    if (accToken) {
-      var payload = accToken.split('.')[1];
-      var formatted = JSON.stringify(atob(payload), null, 4);
-      this.setState({"accessToken": formatted});
-    }
-    var refToken = session.getRefreshToken().getToken();
-    if (refToken) {
-      this.setState({"refreshToken": refToken.substring(1, 20)});
-    }
+    this.setState(session);
   }
 
   constructor(props){
@@ -394,15 +357,28 @@ class App extends React.Component {
     this.setState({view})
   }
 
+  buttonHandler=()=>{
+    if(this.state.authData){
+      this.auth.signOut()
+    } else {
+      this.auth.getSession()
+    }
+  }
+
   render() {
     const view = this.state.view;
-    const activeSession = this.state.authData ? true : false
+    console.log(this.state)
+    const activeSession = this.state.accessToken ? true : false
+    var jwt = ""
+    if (this.state.accessToken){
+      jwt = this.state.accessToken.jwtToken
+    }
 
     return (
         <div>
-          <Header navHandler={this.viewChangeHandler} />
           <button onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
-          <Content view={view} />
+          <Header navHandler={this.viewChangeHandler} />
+          <Content view={view} jwt={jwt} />
           <div id="modal-root"></div>
         </div>
     )
