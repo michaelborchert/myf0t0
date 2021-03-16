@@ -1,5 +1,6 @@
 .header {
-    width: 100%
+    width: 90%;
+    float: left
 }
 .content {
   width: 100%
@@ -22,4 +23,8 @@
   /*width: 90%;*/
   height: 800px;
   display: block
+}
+
+.login {
+  float: right
 }

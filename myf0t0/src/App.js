@@ -326,6 +326,11 @@ class Settings extends React.Component {
 }
 
 class App extends React.Component {
+
+  checkSession = (session) => {
+    this.saveSession(session);
+  }
+
   saveSession = (session) => {
     console.log("Sign in success");
     console.log(session)
@@ -338,16 +343,20 @@ class App extends React.Component {
 
     this.auth = new AmazonCognitoIdentity.CognitoAuth(authData);
     this.auth.userhandler = {
-      onSuccess: this.saveSession,
+      onSuccess: this.checkSession,
       onFailure: function(err) {
         console.log("Error!");
         console.log(err)
       }
     };
     this.auth.useCodeGrantFlow()
-
     var curUrl = window.location.href;
     this.auth.parseCognitoWebResponse(curUrl);
+
+
+  }
+
+  componentDidMount(){
     if (this.auth.getCurrentUser()) {
       this.auth.getSession();
     }
@@ -358,7 +367,7 @@ class App extends React.Component {
   }
 
   buttonHandler=()=>{
-    if(this.state.authData){
+    if(this.state.accessToken){
       this.auth.signOut()
     } else {
       this.auth.getSession()
@@ -376,10 +385,15 @@ class App extends React.Component {
 
     return (
         <div>
-          <button onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
-          <Header navHandler={this.viewChangeHandler} />
-          <Content view={view} jwt={jwt} />
+          <button className="login" onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
+          {activeSession &&
+          <div>
+            <Header navHandler={this.viewChangeHandler} />
+            <Content view={view} jwt={jwt} />
+          </div>
+          }
           <div id="modal-root"></div>
+
         </div>
     )
   }
