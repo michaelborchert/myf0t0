@@ -2,8 +2,11 @@ import React from 'react';
 import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
+import * as AWS from 'aws-sdk/global';
+import { v4 as uuidv4 } from 'uuid';
 
 var AmazonCognitoIdentity = require('amazon-cognito-auth-js');
+
 
 // define the config for the Auth JS SDK
 var authData = {
@@ -230,7 +233,7 @@ class Thumbnail extends React.Component{
 
   render(){
     return (
-        <img src={this.props.data.thumbnail_signed_url} alt="" onClick={this.clickHandler}/>
+        <img className="thumbnail" src={this.props.data.thumbnail_signed_url} alt="" onClick={this.clickHandler}/>
     );
   }
 }
@@ -328,7 +331,43 @@ class Settings extends React.Component {
 class App extends React.Component {
 
   checkSession = (session) => {
+    const sessionExpiration = session.accessToken.payload.exp
+    const currentTime = Math.floor(Date.now()/1000)
+
+    if(sessionExpiration < currentTime + 300 ){
+      console.log("Needs Refresh!");
+    }
+
+    AWS.config.region = process.env.REACT_APP_AWS_REGION;
+
+    const id_key = 'cognito-idp.' + process.env.REACT_APP_AWS_REGION + '.amazonaws.com/' + process.env.REACT_APP_COGNITO_USER_POOL_ID;
+
+    console.log("Getting credentials")
+    console.log(id_key)
+    AWS.config.region = 'us-east-2';
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: process.env.REACT_APP_COGNITO_IDENTITY_POOL,
+      Logins: { // optional tokens, used for authenticated login
+          [id_key]: session.idToken.jwtToken,
+      }
+    });
+
+    // Make the call to obtain credentials
+    AWS.config.credentials.get(function(){
+
+        // Credentials will be available when this function is called.
+        var accessKeyId = AWS.config.credentials.accessKeyId;
+        var secretAccessKey = AWS.config.credentials.secretAccessKey;
+        var sessionToken = AWS.config.credentials.sessionToken;
+        console.log(AWS.config.credentials);
+
+    });
+
     this.saveSession(session);
+  }
+
+  saveCredentials = (result) => {
+      console.log(result);
   }
 
   saveSession = (session) => {

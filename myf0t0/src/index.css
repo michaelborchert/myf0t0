@@ -10,6 +10,10 @@
   display: inline
 }
 
+.thumbnail {
+  width: 200px;
+}
+
 .photo-modal{
 
   width: 90%;

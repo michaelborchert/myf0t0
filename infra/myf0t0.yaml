@@ -401,7 +401,7 @@ Resources:
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
-                "cognito-identity.amazonaws.com:aud": !Sub "us-east-1:${UserPoolAppClient}"
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Description: Site Administrator Role
@@ -419,7 +419,7 @@ Resources:
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
-                "cognito-identity.amazonaws.com:aud": !Sub "us-east-1:${UserPoolAppClient}"
+                "cognito-identity.amazonaws.com:aud": !Sub "${AWS::Region}:${UserPoolAppClient}"
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Description: Site Photo Viewer Role
@@ -474,7 +474,7 @@ Resources:
     Properties:
       IdentityPoolId: !Ref IdentityPool
       Roles:
-        "authenticated": !GetAtt ViewerRole.Arn
+        "authenticated": !GetAtt AdminRole.Arn
         "unauthenticated": !GetAtt ViewerRole.Arn
       RoleMappings:
         "userpool1":
