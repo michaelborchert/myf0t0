@@ -112,13 +112,33 @@ class PhotoFlow extends React.Component {
     this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
     this.closePhotoFocus = this.closePhotoFocus.bind(this)
     this.getThumbnails = this.getThumbnails.bind(this)
-    this.state = {photos:{}, focusPhoto:{}, focusModalVisible:false}
+
+    var start_date = "";
+    if (localStorage.getItem('start_date_filter')){
+        start_date = localStorage.getItem('start_date_filter');
+    }
+    var end_date = "";
+    if (localStorage.getItem('end_date_filter') ){
+      end_date = localStorage.getItem('end_date_filter');
+    }
+
+    this.state = {
+      photos:{},
+      focusPhoto:{},
+      focusModalVisible:false,
+      filters: {
+        start_date: start_date,
+        end_date: end_date
+      }
+    }
   }
 
-  handleFilterUpdate(filter_params){
+  handleFilterUpdate(key, value){
     //console.log(filter_params);
 
-    this.getThumbnails(filter_params)
+    this.setState({filters: {[key]:value}})
+    this.getThumbnails()
+
   }
 
   handlePhotoFocus(photo){
@@ -130,11 +150,19 @@ class PhotoFlow extends React.Component {
   }
 
   componentDidMount(){
-    this.getThumbnails({});
+    this.getThumbnails();
   }
 
-  async getThumbnails(params){
-    console.log(this.props.jwt);
+  async getThumbnails(){
+    var params = {}
+    for (const [key, value] of Object.entries(this.state.filters)){
+      if (value){
+        params[key] = value;
+      }
+    }
+
+    console.log("Getting Thumbnails")
+    console.log(params);
     if (this.props.jwt){
       const requestOptions = {
         mode: 'cors',
@@ -142,10 +170,10 @@ class PhotoFlow extends React.Component {
         headers: {
           'Content-Type': 'application/json',
           Authorization: this.props.jwt
-        },
-        queryStringParameters: params
+        }
       };
-      const url = process.env.REACT_APP_API_ENDPOINT + "/photo"
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/photo");
+      url.search = new URLSearchParams(params).toString();
       fetch(url, requestOptions)
         .then(response => response.json())
         .then(data => {
@@ -185,7 +213,7 @@ class PhotoFlow extends React.Component {
     return (
        <div>
        <h1>Photos!</h1>
-        <PhotoFilterPane filterHandler={this.handleFilterUpdate}/>
+        <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters}/>
         <ul>
           {listItems}
         </ul>
@@ -241,9 +269,9 @@ class Thumbnail extends React.Component{
 class PhotoFilterPane extends React.Component {
   constructor(props){
     super(props);
-    this.state = {"pane_open": false, "start_date": "", "end_date": ""}
+
+    this.state = {"pane_open": false}
     this.togglePane = this.togglePane.bind(this)
-    this.applyFilters = this.applyFilters.bind(this)
     this.handleValueChanged = this.handleValueChanged.bind(this)
   }
 
@@ -253,16 +281,10 @@ class PhotoFilterPane extends React.Component {
     })
   }
 
-  applyFilters(){
-    let filter_params = this.state;
-    delete filter_params.pane_open
-    this.props.filterHandler(filter_params)
-  }
-
   handleValueChanged(field, value){
     console.log(field)
     console.log(value)
-    this.setState({[field]: value})
+    this.props.filterHandler(field, value);
   }
 
   render(){
@@ -279,11 +301,10 @@ class PhotoFilterPane extends React.Component {
                 <td> End Date</td>
               </tr>
               <tr>
-                <td> <FilterControl field="start_date" value={this.state.start_date} onValueChange={this.handleValueChanged} /> </td>
-                <td> <FilterControl field="end_date" value={this.state.end_date} onValueChange={this.handleValueChanged} /> </td>
+                <td> <FilterControl field="start_date" value={this.props.filterValues.start_date} onValueChange={this.handleValueChanged} /> </td>
+                <td> <FilterControl field="end_date" value={this.props.filterValues.end_date} onValueChange={this.handleValueChanged} /> </td>
               </tr>
             </tbody></table>
-            <button onClick={this.applyFilters}> Apply </button>
           </div>
         }
       </div>

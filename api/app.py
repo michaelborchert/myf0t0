@@ -1,8 +1,3 @@
-# from flask import Flask, jsonify, request, make_response
-# from flask_lambda import FlaskLambda
-# from flask_cors import CORS
-# from flask_swagger import swagger
-
 from chalice import Chalice, CORSConfig
 
 import boto3
@@ -11,9 +6,6 @@ import datetime
 import base64
 import json
 import os
-
-#app = FlaskLambda(__name__)
-#CORS(app)
 
 app = Chalice(app_name='myf0t0-api')
 app.api.cors = True
@@ -35,7 +27,8 @@ def photo_query(**kwargs):
 
             print(output)
             if "Limit" in kwargs.keys():
-                output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"])[:int(kwargs["Limit"])]
+                output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
+                output["Items"] = output["Items"][:int(kwargs["Limit"])]
 
             return output
     else:
@@ -137,7 +130,7 @@ def get_photos():
         #print(key)
         expiration = 3600
         item["signed_url"] = create_presigned_url(bucket, key, expiration)
-        
+
         thumbnail_id = item["thumbnail_key"]
         thumbnail_id_arr = thumbnail_id.split('/', 1)
         thumbnail_bucket = thumbnail_id_arr[0]
