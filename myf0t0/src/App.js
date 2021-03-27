@@ -108,6 +108,7 @@ class PhotoDetailModal extends React.Component{
 class PhotoFlow extends React.Component {
   constructor(props){
     super(props);
+    console.log("PhotoFlow Constructor!")
     this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
     this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
     this.closePhotoFocus = this.closePhotoFocus.bind(this)
@@ -123,13 +124,14 @@ class PhotoFlow extends React.Component {
     }
 
     this.state = {
-      photos:{},
+      photos:[],
       focusPhoto:{},
       focusModalVisible:false,
       filters: {
         start_date: start_date,
         end_date: end_date
-      }
+      },
+      fetching_data: false
     }
   }
 
@@ -150,8 +152,28 @@ class PhotoFlow extends React.Component {
   }
 
   componentDidMount(){
+    document.addEventListener('scroll', this.trackScrolling);
     this.getThumbnails();
   }
+
+  componentWillUnmount() {
+    document.removeEventListener('scroll', this.trackScrolling);
+  }
+
+  isBottom(el) {
+    return el.getBoundingClientRect().bottom <= window.innerHeight;
+  }
+
+  trackScrolling = () => {
+    const wrappedElement = document.getElementById('photoFlowDiv');
+    if (this.isBottom(wrappedElement)) {
+      console.log('photoFlow bottom reached');
+      if(!this.state.fetching_data){
+        this.setState({fetching_data: true});
+        this.getThumbnails();
+      }
+    }
+  };
 
   async getThumbnails(){
     var params = {}
@@ -159,6 +181,10 @@ class PhotoFlow extends React.Component {
       if (value){
         params[key] = value;
       }
+    }
+
+    if(this.state.last_evaluated_key){
+      params["lek"] = this.state.last_evaluated_key;
     }
 
     console.log("Getting Thumbnails")
@@ -178,7 +204,11 @@ class PhotoFlow extends React.Component {
         .then(response => response.json())
         .then(data => {
           console.log(data)
-          this.setState({photos: data})
+          const newPhotos = this.state.photos.concat(data["Items"])
+          this.setState({photos: newPhotos, fetching_data: false})
+          if ("LastEvaluatedKey" in data){
+            this.setState({last_evaluated_key: data["LastEvaluatedKey"]})
+          }
         })
         .catch(error => {
           console.log(error.response);
@@ -211,9 +241,9 @@ class PhotoFlow extends React.Component {
     ));
 
     return (
-       <div>
+       <div id='photoFlowDiv'>
        <h1>Photos!</h1>
-        <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters}/>
+        <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters} />
         <ul>
           {listItems}
         </ul>

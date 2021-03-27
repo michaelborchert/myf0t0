@@ -20,15 +20,24 @@ def photo_query(**kwargs):
     if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
         if (kwargs["ExpressionAttributeValues"][":partitionkeyval"].get("S", "Not Found") == "$photos"):
             output = {"Items": []}
+            exclusiveStartRangeKey = ""
+            if "ExclusiveStartKey" in kwargs:
+                exclusiveStartRangeKey = kwargs["ExclusiveStartKey"]
             for x in range(0,4):
                 kwargs["ExpressionAttributeValues"][":partitionkeyval"]["S"] = "photos"+str(x)
+                if exclusiveStartRangeKey:
+                    kwargs["ExclusiveStartKey"] = {"PK": {"S": "photos"+str(x)}, "SK": {"S": exclusiveStartRangeKey}}
                 response = db_client.query(**kwargs)
                 output["Items"].extend(response["Items"])
 
-            print(output)
+            output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
+
+            print("Responses: {}".format(len(output["Items"])))
+
             if "Limit" in kwargs.keys():
-                output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
-                output["Items"] = output["Items"][:int(kwargs["Limit"])]
+                if int(kwargs["Limit"]) < len(output["Items"]):
+                    output["Items"] = output["Items"][:int(kwargs["Limit"])]
+                    output["LastEvaluatedKey"] = output["Items"][-1]["SK"]["S"]
 
             return output
     else:
@@ -106,17 +115,20 @@ def get_photos():
         range_condition = " AND SK <= :enddate"
         expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
 
-    response =  photo_query(
-        TableName = os.environ['db_name'],
-        Select = "ALL_ATTRIBUTES",
-        Limit = int(query_params.get("max_results", 25)),
-        ConsistentRead = False,
-        ScanIndexForward = False,
-        KeyConditionExpression = "PK = :partitionkeyval" + range_condition,
-        ExpressionAttributeValues = expression_attribute_values
-    )
-    #print(response)
-    #print(item_to_dict(response["Items"]))
+    args = {
+        'TableName': os.environ['db_name'],
+        'Select': "ALL_ATTRIBUTES",
+        'Limit': int(query_params.get("max_results", 25)),
+        'ConsistentRead': False,
+        'ScanIndexForward': False,
+        'KeyConditionExpression': "PK = :partitionkeyval" + range_condition,
+        'ExpressionAttributeValues': expression_attribute_values
+    }
+
+    if "lek" in query_params.keys():
+        args["ExclusiveStartKey"] = query_params["lek"]
+
+    response =  photo_query(**args)
 
     items = item_to_dict(response["Items"])
     for item in items:
@@ -138,8 +150,12 @@ def get_photos():
         thumbnail_expiration = 3600
         item["thumbnail_signed_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, thumbnail_expiration)
 
-    #print(items)
-    return items
+    webResponse = {"Items": items}
+
+    if 'LastEvaluatedKey' in response:
+        webResponse["LastEvaluatedKey"] = response['LastEvaluatedKey']
+
+    return webResponse
 
 @app.route("/photo", methods=['PUT'])
 def get_photos():
