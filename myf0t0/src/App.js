@@ -168,7 +168,7 @@ class PhotoFlow extends React.Component {
     const wrappedElement = document.getElementById('photoFlowDiv');
     if (this.isBottom(wrappedElement)) {
       console.log('photoFlow bottom reached');
-      if(!this.state.fetching_data){
+      if(!this.state.fetching_data && this.state.last_evaluated_key){
         this.setState({fetching_data: true});
         this.getThumbnails();
       }
@@ -206,9 +206,11 @@ class PhotoFlow extends React.Component {
           console.log(data)
           const newPhotos = this.state.photos.concat(data["Items"])
           this.setState({photos: newPhotos, fetching_data: false})
+          var lek = "";
           if ("LastEvaluatedKey" in data){
-            this.setState({last_evaluated_key: data["LastEvaluatedKey"]})
+            lek = data["LastEvaluatedKey"];
           }
+          this.setState({last_evaluated_key: lek})
         })
         .catch(error => {
           console.log(error.response);
