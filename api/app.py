@@ -141,14 +141,14 @@ def get_photos():
         key = id_arr[1]
         #print(key)
         expiration = 3600
-        item["signed_url"] = create_presigned_url(bucket, key, expiration)
+        #item["signed_url"] = create_presigned_url(bucket, key, expiration)
 
         thumbnail_id = item["thumbnail_key"]
         thumbnail_id_arr = thumbnail_id.split('/', 1)
         thumbnail_bucket = thumbnail_id_arr[0]
         thumbnail_key = thumbnail_id_arr[1]
         thumbnail_expiration = 3600
-        item["thumbnail_signed_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, thumbnail_expiration)
+        #item["thumbnail_signed_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, thumbnail_expiration)
 
     webResponse = {"Items": items}
 

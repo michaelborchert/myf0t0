@@ -2,8 +2,9 @@ import React from 'react';
 import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
-import * as AWS from 'aws-sdk/global';
-import { v4 as uuidv4 } from 'uuid';
+var AWS = require('aws-sdk');
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 var AmazonCognitoIdentity = require('amazon-cognito-auth-js');
 
@@ -284,16 +285,64 @@ class Thumbnail extends React.Component{
   constructor(props){
     super(props);
     this.clickHandler = this.clickHandler.bind(this)
-    this.state = {};
+    this.state = {clickHandler: this.clickHandler};
   }
 
   clickHandler(){
     this.props.onClickHandler(this.props.data)
   }
 
+  componentDidMount () {
+    const thumbnail_arr = this.props.data.thumbnail_key.split("/", 1);
+    const thumbnail_bucket = thumbnail_arr[0];
+    const thumbnail_key = this.props.data.thumbnail_key.slice(thumbnail_bucket.length + 1)
+    console.log(thumbnail_bucket+ "  " + thumbnail_key)
+
+    var credentials = AWS.config.credentials;
+    console.log(credentials);
+    var region = process.env.REACT_APP_AWS_REGION
+    const clientParams = {
+      region: process.env.REACT_APP_AWS_REGION,
+      credentials: AWS.config.credentials
+    }
+    const getObjectParams = {
+      Bucket: thumbnail_bucket,
+      Key: thumbnail_key
+    }
+    const client = new S3Client(clientParams);
+    const command = new GetObjectCommand(getObjectParams);
+    getSignedUrl(client, command, { expiresIn: 3600 })
+    .then((url) => {
+      this.setState({url: url});
+      console.log("Debug2");
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  }
+
   render(){
+    const url = this.state.url;
+    const clickHandler = this.state.clickHandler;
+    console.log("Debug!")
+    if (url){
+      return(<ThumbnailImage url={url} clickHandler={clickHandler} />);
+    } else {
+      return null;
+    }
+
+  }
+}
+
+class ThumbnailImage extends React.Component{
+  constructor (props) {
+    super(props);
+    this.state = {};
+  }
+
+  render() {
     return (
-        <img className="thumbnail" src={this.props.data.thumbnail_signed_url} alt="" onClick={this.clickHandler}/>
+        <img className="thumbnail" src={this.props.url} alt="" onClick={this.props.clickHandler}/>
     );
   }
 }
@@ -444,8 +493,6 @@ class App extends React.Component {
     this.auth.useCodeGrantFlow()
     var curUrl = window.location.href;
     this.auth.parseCognitoWebResponse(curUrl);
-
-
   }
 
   componentDidMount(){
