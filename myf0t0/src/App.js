@@ -212,9 +212,14 @@ class PhotoFlow extends React.Component {
             lek = data["LastEvaluatedKey"];
           }
           this.setState({last_evaluated_key: lek})
+          console.log("Document height: " + document.body.clientHeight);
+          console.log("Window height: " + window.innerHeight);
+          if(lek && document.body.clientHeight < window.innerHeight){
+            this.getThumbnails()
+          }
         })
         .catch(error => {
-          console.log(error.response);
+          console.log(error);
        });
     } else {
       console.log("No JWT Token yet.");
@@ -296,11 +301,7 @@ class Thumbnail extends React.Component{
     const thumbnail_arr = this.props.data.thumbnail_key.split("/", 1);
     const thumbnail_bucket = thumbnail_arr[0];
     const thumbnail_key = this.props.data.thumbnail_key.slice(thumbnail_bucket.length + 1)
-    console.log(thumbnail_bucket+ "  " + thumbnail_key)
 
-    var credentials = AWS.config.credentials;
-    console.log(credentials);
-    var region = process.env.REACT_APP_AWS_REGION
     const clientParams = {
       region: process.env.REACT_APP_AWS_REGION,
       credentials: AWS.config.credentials
@@ -314,7 +315,6 @@ class Thumbnail extends React.Component{
     getSignedUrl(client, command, { expiresIn: 3600 })
     .then((url) => {
       this.setState({url: url});
-      console.log("Debug2");
     })
     .catch((err) => {
       console.log(err);
@@ -324,7 +324,6 @@ class Thumbnail extends React.Component{
   render(){
     const url = this.state.url;
     const clickHandler = this.state.clickHandler;
-    console.log("Debug!")
     if (url){
       return(<ThumbnailImage url={url} clickHandler={clickHandler} />);
     } else {
