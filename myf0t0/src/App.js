@@ -170,6 +170,10 @@ class PhotoFlow extends React.Component {
     if (this.isBottom(wrappedElement)) {
       console.log('photoFlow bottom reached');
       if(!this.state.fetching_data && this.state.last_evaluated_key){
+        /*
+        Set a state variable so that future scroll events don't trigger another
+        fetch until we've gotten a response from _this_ event.
+        */
         this.setState({fetching_data: true});
         this.getThumbnails();
       }
@@ -190,6 +194,9 @@ class PhotoFlow extends React.Component {
 
     console.log("Getting Thumbnails")
     console.log(params);
+    /*
+    Make sure the async process to fetch access tokens has completed before continuing.
+    */
     if (this.props.jwt){
       const requestOptions = {
         mode: 'cors',
@@ -207,13 +214,21 @@ class PhotoFlow extends React.Component {
           console.log(data)
           const newPhotos = this.state.photos.concat(data["Items"])
           this.setState({photos: newPhotos, fetching_data: false})
+
+          /*
+          Check to see if we got a "LastEvaluatedKey".  If so, there
+          are more pages of thumbnails that match our filters.
+          */
           var lek = "";
           if ("LastEvaluatedKey" in data){
             lek = data["LastEvaluatedKey"];
           }
           this.setState({last_evaluated_key: lek})
-          console.log("Document height: " + document.body.clientHeight);
-          console.log("Window height: " + window.innerHeight);
+
+          /*
+          Check to see if there are more photos to get AND we have space left
+          on the visible page.  If so, keep getting thumbnails.
+          */
           if(lek && document.body.clientHeight < window.innerHeight){
             this.getThumbnails()
           }
@@ -232,10 +247,10 @@ class PhotoFlow extends React.Component {
     var photo_groups = []
     var curr_header = ""
     var groups = 0
-    console.log(this.state.photos);
+    //console.log(this.state.photos);
     for(var i=0; i<this.state.photos.length; i++){
       var photo = this.state.photos[i];
-      console.log(photo);
+      //console.log(photo);
       if (curr_header !== photo.SK.split("T")[0]){
         curr_header = photo.SK.split("T")[0]
         photo_groups.push({header: curr_header, photos: []});
@@ -298,10 +313,15 @@ class Thumbnail extends React.Component{
   }
 
   componentDidMount () {
+    //Extract the bucket and object key from the response
     const thumbnail_arr = this.props.data.thumbnail_key.split("/", 1);
     const thumbnail_bucket = thumbnail_arr[0];
     const thumbnail_key = this.props.data.thumbnail_key.slice(thumbnail_bucket.length + 1)
 
+    /*
+    Sign a URL for the thumbnail using the Role associated with our login so that we can
+    access the private bucket.
+    */
     const clientParams = {
       region: process.env.REACT_APP_AWS_REGION,
       credentials: AWS.config.credentials
