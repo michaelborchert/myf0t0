@@ -22,7 +22,7 @@ sqs_client = boto3.client('sqs')
 objects = s3_client.list_objects(Bucket=bucketname, MaxKeys=10)
 for object in objects["Contents"]:
     if object["Key"].startswith("img/") and object["Key"] != "img/":
-        message = {"Records": [{"s3": { "object": { "key": object["Key"]}}}]}
+        message = {"Records": [{"eventName":"ObjectCreated:Put", "s3": { "object": { "key": object["Key"]}}}]}
         response = sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(message)

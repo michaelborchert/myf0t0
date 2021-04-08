@@ -57,6 +57,15 @@ Resources:
                   -
                     Name: "prefix"
                     Value: "img/"
+          -
+            Event: s3:ObjectRemoved:*
+            Queue: !GetAtt ProcessingQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: "prefix"
+                    Value: "img/"
   PhotoBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Condition: NewBucket
@@ -157,6 +166,7 @@ Resources:
               - 'dynamodb:*'
             Resource:
               - !GetAtt MetadataDb.Arn
+              - !Join ["", [!GetAtt MetadataDb.Arn, "/index/*"]]
           - Effect: Allow
             Action:
               - 'sqs:ReceiveMessage'
