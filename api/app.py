@@ -54,7 +54,10 @@ def item_to_dict(item):
                     if type == "M":
                         output[k] = item_to_dict(v[type])
                     elif type == "B":
-                        output[k] = str(base64.b64encode(v[type]))
+                        #b_string = v[type]
+                        #output[k] = b_string.decode('UTF-16')
+                        #I cannot figure out how to turn EXIF byte strings into anything intelligible!
+                        pass
                     else:
                         output[k] = str(v[type])
             else:
