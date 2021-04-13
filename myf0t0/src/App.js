@@ -237,9 +237,9 @@ class PhotoFlow extends React.Component {
   }
 
   handleFilterUpdate(key, value){
-    //console.log(filter_params);
+    console.debug("{key}: {value}");
 
-    this.setState({filters: {[key]:value}})
+    this.setState({filters: {[key]:value}, photos:[], last_evaluated_key:""})
     this.getThumbnails()
 
   }
