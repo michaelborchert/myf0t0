@@ -129,13 +129,62 @@ class PhotoExifData extends React.Component{
     super(props);
   }
 
+  formatExif(exif){
+    var formatted_exif = {}
+    if("ApertureValue" in exif){
+      const regexpAperture = /\(([0-9]+)\, ([0-9]+)\)/;
+      const match = exif["ApertureValue"].match(regexpAperture);
+      formatted_exif["Aperture"] = (parseFloat(match[1])/parseFloat(match[2])).toFixed(2);
+    }
+
+    if("FNumber" in exif){
+      const regexpFNumber= /\(([0-9]+)\, ([0-9]+)\)/;
+      const match = exif["FNumber"].match(regexpFNumber);
+      formatted_exif["FNumber"] = (parseFloat(match[1])/parseFloat(match[2])).toFixed(2);
+    }
+
+    if("ExposureTime" in exif){
+      const regexpExposure= /\(([0-9]+)\, ([0-9]+)\)/;
+      const match = exif["ExposureTime"].match(regexpExposure);
+      //Get exposure time in ms
+      const exposureTime = (parseFloat(match[1])/(parseFloat(match[2])*1000.0)).toFixed(0);
+      formatted_exif["Exposure Time"] = `${exposureTime}ms`
+    }
+
+    if("ExifImageHeight" in exif){
+      const height = exif["ExifImageHeight"];
+      formatted_exif["Image Height"] = `${height}px`
+    }
+
+    if("ExifImageWidth" in exif){
+      const width = exif["ExifImageWidth"];
+      formatted_exif["Image Width"] = `${width}px`
+    }
+
+    if("DateTime" in exif){
+      formatted_exif["Date Taken"] = exif["DateTime"]
+    }
+
+    if("Make" in exif){
+      formatted_exif["Make"] = exif["Make"]
+    }
+
+    if("Model" in exif){
+      formatted_exif["Model"] = exif["Model"]
+    }
+
+    return formatted_exif;
+
+  }
+
   render(){
-    const exif = this.props.exif;
+    const exif = this.formatExif(this.props.exif);
     if(exif){
       return(
         <div>
         {
           Object.keys(exif).map((key, i) => (
+
             <p key={i}>
               <span>{key}: {exif[key]}</span>
             </p>
