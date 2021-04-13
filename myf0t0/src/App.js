@@ -77,11 +77,7 @@ class PhotoDetailModal extends React.Component{
   }
 
   render(){
-    console.log(this.props)
-    var photoName = ""
-    if ("SK" in this.props.photo){
-      photoName = this.props.photo.SK.split("_")[1];
-    }
+
 
     return (
       <Modal
@@ -91,13 +87,9 @@ class PhotoDetailModal extends React.Component{
       dialogClassName="photo-modal"
       centered
     >
-      <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
-          {photoName}
-        </Modal.Title>
-      </Modal.Header>
       <Modal.Body>
         <PhotoDetailSigner data={this.props.photo} />
+        <PhotoDetailData data={this.props.photo} />
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={this.props.onHide}>Close</Button>
@@ -107,10 +99,59 @@ class PhotoDetailModal extends React.Component{
   }
 }
 
+class PhotoDetailData extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render() {
+    const exif = this.props.data.exif;
+
+    var photoName = ""
+    if ("SK" in this.props.data){
+      photoName = this.props.data.SK.split("_")[1];
+    }
+    console.debug(this.props.data);
+    return(
+      <div className="photo-data">
+        { photoName && <h1> {photoName}</h1>}
+        { exif &&
+          <PhotoExifData exif={exif} />
+        }
+      </div>
+    )
+  }
+
+}
+
+class PhotoExifData extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    const exif = this.props.exif;
+    if(exif){
+      return(
+        <div>
+        {
+          Object.keys(exif).map((key, i) => (
+            <p key={i}>
+              <span>{key}: {exif[key]}</span>
+            </p>
+          ))
+        }
+        </div>
+      )
+    }
+    return(<div />);
+  }
+
+}
+
 class PhotoDetailSigner extends React.Component{
   constructor(props){
     super(props);
-    console.debug(props);
     this.state = {};
   }
 
@@ -132,7 +173,6 @@ class PhotoDetailSigner extends React.Component{
       Bucket:image_bucket,
       Key: image_key
     }
-    console.debug(getObjectParams)
     const client = new S3Client(clientParams);
     const command = new GetObjectCommand(getObjectParams);
     getSignedUrl(client, command, { expiresIn: 3600 })

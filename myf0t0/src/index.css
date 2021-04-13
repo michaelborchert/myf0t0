@@ -18,13 +18,13 @@
 .modal-content {
   width: 95%;
   max-width: none !important;
-  height: 95%;
-  max-height: 95%;
+  height: 98%;
+  max-height: 98%;
 }
 
 .modal-body {
   /* 100% = dialog height, 120px = header + footer */
-    max-height: calc(100% - 120px);
+    max-height: calc(100% - 60px);
     overflow-y: scroll;
 }
 
@@ -32,6 +32,13 @@
   /*width: 90%;*/
   height: 100%;
   display: inline
+}
+
+.photo-data {
+  height: 100%;
+  display: inline;
+  float: right;
+  overflow-y: scroll;
 }
 
 .detail-photo {
