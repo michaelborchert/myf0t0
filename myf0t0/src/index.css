@@ -16,10 +16,10 @@
 
 .modal-dialog,
 .modal-content {
-  width: 90%;
+  width: 95%;
   max-width: none !important;
-  height: 90%;
-  max-height: 90%;
+  height: 95%;
+  max-height: 95%;
 }
 
 .modal-body {
@@ -32,6 +32,10 @@
   /*width: 90%;*/
   height: 100%;
   display: inline
+}
+
+.detail-photo {
+  height: 98%;
 }
 
 .login {

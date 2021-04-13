@@ -158,12 +158,11 @@ class PhotoDetailSigner extends React.Component{
 class PhotoDetailImage extends React.Component{
   constructor (props) {
     super(props);
-    this.state = {};
   }
 
   render() {
     return (
-        <img className="detail_photo" src={this.props.url} alt=""/>
+        <img className="detail-photo" src={this.props.url} alt=""/>
     );
   }
 }
@@ -391,7 +390,6 @@ class Thumbnail extends React.Component{
       Bucket: thumbnail_bucket,
       Key: thumbnail_key
     }
-    console.debug(getObjectParams)
     const client = new S3Client(clientParams);
     const command = new GetObjectCommand(getObjectParams);
     getSignedUrl(client, command, { expiresIn: 3600 })
