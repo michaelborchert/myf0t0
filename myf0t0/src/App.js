@@ -97,13 +97,74 @@ class PhotoDetailModal extends React.Component{
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <img className="focus-photo" src={this.props.photo.signed_url} alt="" />
+        <PhotoDetailSigner data={this.props.photo} />
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={this.props.onHide}>Close</Button>
       </Modal.Footer>
     </Modal>
   );
+  }
+}
+
+class PhotoDetailSigner extends React.Component{
+  constructor(props){
+    super(props);
+    console.debug(props);
+    this.state = {};
+  }
+
+  componentDidMount () {
+    //Extract the bucket and object key from the response
+    const image_key_arr = this.props.data.GSI1SK.split("/", 1);
+    const image_bucket = image_key_arr[0];
+    const image_key = this.props.data.GSI1SK.slice(image_bucket.length + 1)
+
+    /*
+    Sign a URL for the thumbnail using the Role associated with our login so that we can
+    access the private bucket.
+    */
+    const clientParams = {
+      region: process.env.REACT_APP_AWS_REGION,
+      credentials: AWS.config.credentials
+    }
+    const getObjectParams = {
+      Bucket:image_bucket,
+      Key: image_key
+    }
+    console.debug(getObjectParams)
+    const client = new S3Client(clientParams);
+    const command = new GetObjectCommand(getObjectParams);
+    getSignedUrl(client, command, { expiresIn: 3600 })
+    .then((url) => {
+      this.setState({url: url});
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+  }
+
+  render(){
+    const url = this.state.url;
+    if (url){
+      return(<PhotoDetailImage url={url} />);
+    } else {
+      return null;
+    }
+
+  }
+}
+
+class PhotoDetailImage extends React.Component{
+  constructor (props) {
+    super(props);
+    this.state = {};
+  }
+
+  render() {
+    return (
+        <img className="detail_photo" src={this.props.url} alt=""/>
+    );
   }
 }
 class PhotoFlow extends React.Component {
@@ -330,6 +391,7 @@ class Thumbnail extends React.Component{
       Bucket: thumbnail_bucket,
       Key: thumbnail_key
     }
+    console.debug(getObjectParams)
     const client = new S3Client(clientParams);
     const command = new GetObjectCommand(getObjectParams);
     getSignedUrl(client, command, { expiresIn: 3600 })

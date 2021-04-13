@@ -14,19 +14,24 @@
   width: 200px;
 }
 
-.photo-modal{
-
+.modal-dialog,
+.modal-content {
   width: 90%;
   max-width: none !important;
   height: 90%;
-  max-height: 900px;
+  max-height: 90%;
+}
 
+.modal-body {
+  /* 100% = dialog height, 120px = header + footer */
+    max-height: calc(100% - 120px);
+    overflow-y: scroll;
 }
 
 .focus-photo {
   /*width: 90%;*/
-  height: 800px;
-  display: block
+  height: 100%;
+  display: inline
 }
 
 .login {
