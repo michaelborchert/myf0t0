@@ -1,8 +1,9 @@
-from chalice import Chalice, CORSConfig
+from chalice import Chalice, CORSConfig, Response
 
 import boto3
 
 import datetime
+import hashlib
 import base64
 import json
 import os
@@ -15,6 +16,9 @@ cors_config = CORSConfig(
 
 db_client = boto3.client('dynamodb')
 s3_client = boto3.client('s3')
+
+def get_index_hash(filename):
+    return int(hashlib.md5(filename.encode()).hexdigest(), 16)%4
 
 def photo_query(**kwargs):
     if (":partitionkeyval" in kwargs["ExpressionAttributeValues"].keys()):
@@ -35,6 +39,7 @@ def photo_query(**kwargs):
             print("Responses: {}".format(len(output["Items"])))
 
             if "Limit" in kwargs.keys():
+                #Check for LEK - we may be using a filter expression that results in zero items but more to fetch
                 if int(kwargs["Limit"]) < len(output["Items"]):
                     output["Items"] = output["Items"][:int(kwargs["Limit"])]
                     output["LastEvaluatedKey"] = output["Items"][-1]["SK"]["S"]
@@ -43,6 +48,16 @@ def photo_query(**kwargs):
     else:
         response =  db_client.query(**kwargs)
         return response
+
+def photo_update(**kwargs):
+    if ("PK" in kwargs["Key"]):
+        filename = kwargs["Key"]["SK"]["S"].split("_")[1]
+        primary_key = "photos{}".format(get_index_hash(filename))
+        kwargs["Key"]["PK"]["S"] = primary_key
+
+    response = db_client.update_item(**kwargs)
+
+    return response
 
 def item_to_dict(item):
     if isinstance(item, dict):
@@ -98,15 +113,87 @@ def hello():
 
 @app.route("/photo", methods=['GET'], cors=cors_config)
 def get_photos():
+    query_params = app.current_request.to_dict()["query_params"]
+    print(app.current_request.to_dict())
+    if not query_params:
+        query_params = {}
+
+    filter_expression = ""
+    expression_attribute_values = {}
+    if "start_date" in query_params.keys() and "end_date" in query_params.keys():
+        filter_expression = "SK BETWEEN :startdate AND :enddate"
+        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
+        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
+    elif "start_date" in query_params.keys():
+        filter_expression = "SK > :startdate"
+        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
+    elif "end_date" in query_params.keys():
+        filter_expression = "SK <= :enddate"
+        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
+
+    if "min_rating" in query_params.keys():
+        if filter_expression:
+            filter_expression = filter_expression + " AND "
+        filter_expression = filter_expression + "GSI1PK >= :rating"
+        expression_attribute_values[":rating"] = {"S": str(query_params["min_rating"])}
+
+
+    scan_kwargs = {
+        'TableName': os.environ['db_name'],
+        'FilterExpression': filter_expression,
+        'ConsistentRead': False,
+        'ProjectionExpression': "SK, GSI1PK, GSI1SK, exif, thumbnail_key",
+        'ExpressionAttributeValues': expression_attribute_values,
+    }
+
+    if "lek" in query_params.keys():
+        scan_kwargs["ExclusiveStartKey"] = query_params["lek"]
+
+    #Get all the photos.  This is ineffecient, but may not matter for our scale.
+    done = False
+    start_key = None
+    output = {"Items": []}
+    while not done:
+        if start_key:
+            scan_kwargs['ExclusiveStartKey'] = start_key
+        response = db_client.scan(**scan_kwargs)
+        output["Items"].extend(response.get('Items', []))
+        start_key = response.get('LastEvaluatedKey', None)
+        done = start_key is None
+
+    #Order by date, newer photos first.
+    output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
+
+    #Limit by max_results param
+    if "max_results" in query_params.keys():
+        if query_params["max_results"] < len(output["Items"]):
+            output["Items"] = output["Items"][:int(query_params["max_results"])]
+
+            #If any results weren't sent, calculate and add new LEK to results.
+            output["LastEvaluatedKey"] = output["Items"][-1]["SK"]["S"]
+
+    items = item_to_dict(output["Items"])
+
+    webResponse = {"Items": items}
+
+    if 'LastEvaluatedKey' in output:
+        webResponse["LastEvaluatedKey"] = output['LastEvaluatedKey']
+
+    return webResponse
+
+def get_photos_old():
     #print(json.dumps(app.current_request.to_dict(), indent=2))
 
     expression_attribute_values = {":partitionkeyval":{"S": "$photos"}}
 
-    query_params = app.current_request.to_dict().get("query_params")
+    query_params = app.current_request.to_dict()["query_params"]
+    print(app.current_request.to_dict())
+    print(query_params);
     if not query_params:
         query_params = {}
 
     range_condition = ""
+    filter_expression = ""
     if "start_date" in query_params.keys() and "end_date" in query_params.keys():
         range_condition = " AND SK BETWEEN :startdate AND :enddate"
         expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
@@ -118,15 +205,25 @@ def get_photos():
         range_condition = " AND SK <= :enddate"
         expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
 
+    if "min_rating" in query_params.keys():
+        filter_expression = filter_expression + " AND GSI1PK >= :rating"
+        expression_attribute_values[":rating"] = {"S": str(query_params["min_rating"])}
+
+    print(filter_expression[5:])
+    print(range_condition)
     args = {
         'TableName': os.environ['db_name'],
         'Select': "ALL_ATTRIBUTES",
-        'Limit': int(query_params.get("max_results", 25)),
+        'Limit': int(query_params.get("max_results", 50)),
         'ConsistentRead': False,
         'ScanIndexForward': False,
         'KeyConditionExpression': "PK = :partitionkeyval" + range_condition,
         'ExpressionAttributeValues': expression_attribute_values
     }
+
+    if len(filter_expression) > 5:
+        args['FilterExpression'] = filter_expression[5:]
+
 
     if "lek" in query_params.keys():
         args["ExclusiveStartKey"] = query_params["lek"]
@@ -160,9 +257,30 @@ def get_photos():
 
     return webResponse
 
-@app.route("/photo", methods=['PUT'])
-def get_photos():
-    return "photo saved."
+# @app.route("/photo", methods=['PUT'])
+# def put_photo():
+#     return "photo saved."
+
+@app.route("/rating", methods=['PUT'], cors=cors_config)
+def put_rating():
+    print(app.current_request.to_dict())
+    body = app.current_request.json_body
+    print(body)
+    if "photo_id" not in body or "rating" not in body:
+        return Response(body='Malformed body',
+                        status_code=400)
+
+    args = {
+        'TableName': os.environ['db_name'],
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'UpdateExpression': "SET GSI1PK=:rating",
+        'ExpressionAttributeValues': {":rating": {"S": str(body["rating"])}},
+    }
+
+    response = photo_update(**args)
+
+    return "rating saved."
+
 
 @app.route("/spec")
 def spec():

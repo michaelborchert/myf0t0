@@ -26,7 +26,7 @@ id = filename
 
 PK                          SK                  GSI1PK    GSI1SK
 'photos[0..4{hash of id}]'  date+name(photo id) rating    s3_key      <metadata - including tags>
-                            tag                 tag       photo id    <s3_key>
+'tags[0..4]{hash of id}]'   tag                 tag       photo id    <s3_key>
 
 gallery_id (name)           gallery_id                                <metadata>
                             photo id            s3_key    gallery_id

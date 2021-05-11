@@ -134,7 +134,7 @@ def processNewObject(key, filename, file_id, file_type):
             Item={
                 "PK": {"S": "photos{}".format(get_index_hash(filename))},
                 "SK": {"S": photo_id},
-                "GSI1PK": {"S": "None"},
+                "GSI1PK": {"S": "0"},
                 "GSI1SK": {"S": key},
                 "thumbnail_key": {"S": thumbnail_key},
                 "exif": dict_to_item(exif_data)

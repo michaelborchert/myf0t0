@@ -1,12 +1,14 @@
 Next Steps:
-  * Add Lambda functions (and IAM stuff) to CFN
-  * Update processing code to work with DDB
+  * Rating & Tagging Apis
+  * Wire front-end Rating to API
+  * Look at filters - probably need to wait until valid date before refreshing photos, need to do some real testing.
+  * Figure out mobile experience with S3 client
+  * Demo!
 
 Goals:
 * Distributable - non-technical users should be able to deploy the whole app.  Suggests a single CFN template and/or AWS Marketplace.
-* Hackable - Loosely coupled components, as few fancy frameworks as possible
 * Hostable - Can run multiple instances in a single account
-* Sorta-social - Manage permissions and users, but not a "multi-tennant" app.
+* Sorta-social - Manage permissions and users, but not a "multi-tenant" app.
 * Secure - Don't lose my pictures!  Don't show 'em to yahoos!
 
 MVP Needs:

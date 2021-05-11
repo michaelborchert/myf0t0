@@ -2,11 +2,14 @@ import React from 'react';
 import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
+import ReactStars from 'react-stars'
+
 var AWS = require('aws-sdk');
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 var AmazonCognitoIdentity = require('amazon-cognito-auth-js');
+
 
 
 // define the config for the Auth JS SDK
@@ -115,6 +118,7 @@ class PhotoDetailData extends React.Component{
     return(
       <div className="photo-data">
         { photoName && <h1> {photoName}</h1>}
+        <PhotoRating data={this.props.data} />
         { exif &&
           <PhotoExifData exif={exif} />
         }
@@ -122,6 +126,22 @@ class PhotoDetailData extends React.Component{
     )
   }
 
+}
+
+class PhotoRating extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  handleRatingClick = (rating) => {
+      console.log(rating);
+  }
+
+  render() {
+    return(
+      <ReactStars name="star-rating" count={5} onChange={this.handleRatingClick} size={30} half={false}/>
+    )
+  }
 }
 
 class PhotoExifData extends React.Component{
@@ -600,14 +620,13 @@ class Settings extends React.Component {
 
 class App extends React.Component {
 
-  checkSession = (session) => {
-    const sessionExpiration = session.accessToken.payload.exp
+  sessionIsExpired = (token) => {
+    const sessionExpiration = token.payload.exp
     const currentTime = Math.floor(Date.now()/1000)
+    return (sessionExpiration < currentTime);
+  }
 
-    if(sessionExpiration < currentTime + 300 ){
-      console.log("Needs Refresh!");
-    }
-
+  checkSession = (session) => {
     AWS.config.region = process.env.REACT_APP_AWS_REGION;
 
     const id_key = 'cognito-idp.' + process.env.REACT_APP_AWS_REGION + '.amazonaws.com/' + process.env.REACT_APP_COGNITO_USER_POOL_ID;
@@ -665,6 +684,11 @@ class App extends React.Component {
 
   componentDidMount(){
     if (this.auth.getCurrentUser()) {
+      console.log(this.auth);
+      if (this.sessionIsExpired(this.auth.signInUserSession.accessToken)){
+        console.debug("Panic!")
+        this.auth.signOut();
+      }
       this.auth.getSession();
     }
   }
