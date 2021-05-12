@@ -281,6 +281,41 @@ def put_rating():
 
     return "rating saved."
 
+@app.route("/tag", methods=['PUT'], cors=cors_config)
+def put_tag():
+    body = app.current_request.json_body
+    if "photo_id" not in body or "tag" not in body:
+        return Response(body='Malformed body', status_code=400)
+    args = {
+        'TableName': os.environ['db_name'],
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'UpdateExpression': "ADD tags :tag",
+        'ExpressionAttributeValues': {
+            ":tag": {"SS": [str(body["tag"])]},
+        }
+    }
+
+    response = photo_update(**args)
+
+    return "tag saved."
+
+@app.route("/tag", methods=['DELETE'], cors=cors_config)
+def delete_tag():
+    body = app.current_request.json_body
+    if "photo_id" not in body or "tag" not in body:
+        return Response(body='Malformed body', status_code=400)
+    args = {
+        'TableName': os.environ['db_name'],
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'UpdateExpression': "delete tags :tag",
+        'ExpressionAttributeValues': {
+            ":tag": {"SS": [str(body["tag"])]},
+        }
+    }
+
+    response = photo_update(**args)
+
+    return "tag removed."
 
 @app.route("/spec")
 def spec():

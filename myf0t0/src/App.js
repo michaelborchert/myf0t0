@@ -621,8 +621,8 @@ class Settings extends React.Component {
 class App extends React.Component {
 
   sessionIsExpired = (token) => {
-    const sessionExpiration = token.payload.exp
-    const currentTime = Math.floor(Date.now()/1000)
+    const sessionExpiration = token.payload.exp;
+    const currentTime = Math.floor(Date.now()/1000);
     return (sessionExpiration < currentTime);
   }
 
