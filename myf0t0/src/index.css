@@ -1,3 +1,9 @@
+body {
+  background-color: #18171f;
+  color: #ffffff;
+  font-family: 'Roboto', sans-serif;
+}
+
 .header {
     width: 90%;
     float: left
@@ -20,12 +26,14 @@
   max-width: none !important;
   height: 98%;
   max-height: 98%;
+  background-color: #18171f;
 }
 
 .modal-body {
   /* 100% = dialog height, 120px = header + footer */
     max-height: calc(100% - 60px);
     overflow-y: scroll;
+    background-color: #18171f;
 }
 
 .focus-photo {

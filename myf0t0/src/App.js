@@ -80,8 +80,6 @@ class PhotoDetailModal extends React.Component{
   }
 
   render(){
-
-
     return (
       <Modal
       {...this.props}
@@ -95,7 +93,7 @@ class PhotoDetailModal extends React.Component{
         <PhotoDetailData data={this.props.photo} />
       </Modal.Body>
       <Modal.Footer>
-        <Button onClick={this.props.onHide}>Close</Button>
+        <Button className="btn btn-secondary" onClick={this.props.onHide}>Close</Button>
       </Modal.Footer>
     </Modal>
   );
@@ -560,7 +558,7 @@ class PhotoFilterPane extends React.Component {
     const isPaneOpen = this.state.pane_open;
     return (
       <div>
-        <span>Filters<button onClick={this.togglePane}> {isPaneOpen ? '-' : '+'} </button></span>
+        <button  type="button" className="btn btn-secondary" onClick={this.togglePane}> {isPaneOpen ? 'Filters ^' : 'Filters v'} </button>
 
         {isPaneOpen &&
           <div>
@@ -716,7 +714,7 @@ class App extends React.Component {
 
     return (
         <div>
-          <button className="login" onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
+          <button type="button" className="btn btn-secondary login" onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
           {activeSession &&
           <div>
             <Header navHandler={this.viewChangeHandler} />
