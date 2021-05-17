@@ -142,7 +142,7 @@ def get_photos():
         'TableName': os.environ['db_name'],
         'FilterExpression': filter_expression,
         'ConsistentRead': False,
-        'ProjectionExpression': "SK, GSI1PK, GSI1SK, exif, thumbnail_key",
+        'ProjectionExpression': "SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating",
         'ExpressionAttributeValues': expression_attribute_values,
     }
 
@@ -264,22 +264,22 @@ def get_photos_old():
 @app.route("/rating", methods=['PUT'], cors=cors_config)
 def put_rating():
     print(app.current_request.to_dict())
-    body = app.current_request.json_body
-    print(body)
-    if "photo_id" not in body or "rating" not in body:
+    params = app.current_request.query_params
+    print(params)
+    if "photo_id" not in params or "rating" not in params:
         return Response(body='Malformed body',
                         status_code=400)
 
     args = {
         'TableName': os.environ['db_name'],
-        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": params["photo_id"]}},
         'UpdateExpression': "SET GSI1PK=:rating",
-        'ExpressionAttributeValues': {":rating": {"S": str(body["rating"])}},
+        'ExpressionAttributeValues': {":rating": {"S": str(params["rating"])}},
     }
 
     response = photo_update(**args)
 
-    return "rating saved."
+    return {"message": "rating saved."}
 
 @app.route("/tag", methods=['PUT'], cors=cors_config)
 def put_tag():
@@ -297,7 +297,7 @@ def put_tag():
 
     response = photo_update(**args)
 
-    return "tag saved."
+    return  {"message": "tag saved."}
 
 @app.route("/tag", methods=['DELETE'], cors=cors_config)
 def delete_tag():
@@ -315,7 +315,7 @@ def delete_tag():
 
     response = photo_update(**args)
 
-    return "tag removed."
+    return  {"message": "tag removed."}
 
 @app.route("/spec")
 def spec():

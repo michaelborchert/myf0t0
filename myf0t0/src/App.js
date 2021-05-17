@@ -90,7 +90,7 @@ class PhotoDetailModal extends React.Component{
     >
       <Modal.Body>
         <PhotoDetailSigner data={this.props.photo} />
-        <PhotoDetailData data={this.props.photo} />
+        <PhotoDetailData data={this.props.photo} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
       </Modal.Body>
       <Modal.Footer>
         <Button className="btn btn-secondary" onClick={this.props.onHide}>Close</Button>
@@ -116,7 +116,7 @@ class PhotoDetailData extends React.Component{
     return(
       <div className="photo-data">
         { photoName && <h1> {photoName}</h1>}
-        <PhotoRating data={this.props.data} />
+        <PhotoRating data={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
         { exif &&
           <PhotoExifData exif={exif} />
         }
@@ -129,15 +129,43 @@ class PhotoDetailData extends React.Component{
 class PhotoRating extends React.Component{
   constructor(props){
     super(props);
+    this.setRating = this.setRating.bind(this);
   }
 
   handleRatingClick = (rating) => {
       console.log(rating);
+      console.log(this.props);
+      this.setRating(rating);
+  }
+
+  async setRating(rating) {
+    console.debug(this.props);
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      console.debug(this.props);
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/rating");
+      const params = {"photo_id": this.props.data.SK, "rating": rating}
+      url.search = new URLSearchParams(params).toString();
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          this.props.updateHandler(this.props.data.SK, "GSI1PK", rating)
+        })
+    }
   }
 
   render() {
+    const current_rating = parseInt(this.props.data.GSI1PK);
     return(
-      <ReactStars name="star-rating" count={5} onChange={this.handleRatingClick} size={30} half={false}/>
+      <ReactStars name="star-rating" count={5} onChange={this.handleRatingClick} size={30} half={false} value={current_rating}/>
     )
   }
 }
@@ -273,12 +301,14 @@ class PhotoDetailImage extends React.Component{
     );
   }
 }
+
 class PhotoFlow extends React.Component {
   constructor(props){
     super(props);
     console.log("PhotoFlow Constructor!")
     this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
     this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
+    this.handleMetadataUpdate = this.handleMetadataUpdate.bind(this)
     this.closePhotoFocus = this.closePhotoFocus.bind(this)
     this.getThumbnails = this.getThumbnails.bind(this)
 
@@ -309,6 +339,26 @@ class PhotoFlow extends React.Component {
     this.setState({filters: {[key]:value}, photos:[], last_evaluated_key:""})
     this.getThumbnails()
 
+  }
+
+  handleMetadataUpdate(photo_id, key, value){
+    let photos = [...this.state.photos]
+    var i;
+    for (i=0; i<photos.length; i++){
+      if (photos[i]["SK"] == photo_id){
+        let photo = {...photos[i]}
+        photo[key] = value;
+        photos[i] = photo;
+        this.setState({photos: photos})
+        break;
+      }
+    }
+
+    if (this.state.focusPhoto.SK == photo_id){
+      var photo = this.state.focusPhoto;
+      photo[key] = value;
+      this.setState({"focusPhoto": photo})
+    }
   }
 
   handlePhotoFocus(photo){
@@ -432,8 +482,9 @@ class PhotoFlow extends React.Component {
 
     return (
        <div id='photoFlowDiv'>
-       <h1>Photos!</h1>
-        <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters} />
+       <br/>
+       <span className="section-title">Photos!</span>
+       <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters} />
         <ul>
           {listItems}
         </ul>
@@ -442,6 +493,8 @@ class PhotoFlow extends React.Component {
             show={this.state.focusModalVisible}
             onHide={this.closePhotoFocus}
             photo={this.state.focusPhoto}
+            jwt={this.props.jwt}
+            updateHandler={this.handleMetadataUpdate}
           />
 
       </div>
@@ -557,11 +610,11 @@ class PhotoFilterPane extends React.Component {
   render(){
     const isPaneOpen = this.state.pane_open;
     return (
-      <div>
-        <button  type="button" className="btn btn-secondary" onClick={this.togglePane}> {isPaneOpen ? 'Filters ^' : 'Filters v'} </button>
+      <div className="filter-pane">
+        <button  type="button" className="btn btn-secondary" onClick={this.togglePane}> {isPaneOpen ? 'Hide Filters' : 'Show Filters'} </button>
 
         {isPaneOpen &&
-          <div>
+          <div className="filter-table">
             <table><tbody>
               <tr>
                 <td> Start Date</td>
