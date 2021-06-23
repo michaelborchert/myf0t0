@@ -166,7 +166,7 @@ def get_photos():
 
     #Limit by max_results param
     if "max_results" in query_params.keys():
-        if query_params["max_results"] < len(output["Items"]):
+        if int(query_params["max_results"]) < len(output["Items"]):
             output["Items"] = output["Items"][:int(query_params["max_results"])]
 
             #If any results weren't sent, calculate and add new LEK to results.

@@ -66,7 +66,7 @@ class Content extends React.Component {
   render(){
     return (
       <div className="content">
-        {this.props.view === "Photos" && <PhotoFlow jwt={this.props.jwt}/>}
+        {this.props.view === "Photos" && <PhotoFilterPane jwt={this.props.jwt}/>}
         {this.props.view === "Galleries" && <Galleries />}
         {this.props.view === "Settings" && <Settings />}
       </div>
@@ -302,115 +302,56 @@ class PhotoDetailImage extends React.Component{
   }
 }
 
-class PhotoFlow extends React.Component {
+class PhotoFlowData extends React.Component{
   constructor(props){
     super(props);
-    console.log("PhotoFlow Constructor!")
-    this.handleFilterUpdate = this.handleFilterUpdate.bind(this)
-    this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
-    this.handleMetadataUpdate = this.handleMetadataUpdate.bind(this)
-    this.closePhotoFocus = this.closePhotoFocus.bind(this)
-    this.getThumbnails = this.getThumbnails.bind(this)
-
-    var start_date = "";
-    if (localStorage.getItem('start_date_filter')){
-        start_date = localStorage.getItem('start_date_filter');
-    }
-    var end_date = "";
-    if (localStorage.getItem('end_date_filter') ){
-      end_date = localStorage.getItem('end_date_filter');
-    }
-
-    this.state = {
-      photos:[],
-      focusPhoto:{},
-      focusModalVisible:false,
-      filters: {
-        start_date: start_date,
-        end_date: end_date
-      },
-      fetching_data: false
-    }
-  }
-
-  handleFilterUpdate(key, value){
-    console.debug("{key}: {value}");
-
-    this.setState({filters: {[key]:value}, photos:[], last_evaluated_key:""})
-    this.getThumbnails()
-
-  }
-
-  handleMetadataUpdate(photo_id, key, value){
-    let photos = [...this.state.photos]
-    var i;
-    for (i=0; i<photos.length; i++){
-      if (photos[i]["SK"] == photo_id){
-        let photo = {...photos[i]}
-        photo[key] = value;
-        photos[i] = photo;
-        this.setState({photos: photos})
-        break;
-      }
-    }
-
-    if (this.state.focusPhoto.SK == photo_id){
-      var photo = this.state.focusPhoto;
-      photo[key] = value;
-      this.setState({"focusPhoto": photo})
-    }
-  }
-
-  handlePhotoFocus(photo){
-    this.setState({focusPhoto: photo, focusModalVisible: true});
-  }
-
-  closePhotoFocus(){
-    this.setState({focusModalVisible: false});
+    console.debug("PhotoFlowData Constructor")
+    this.getPhotoData = this.getPhotoData.bind(this)
+    this.updatePhotoData = this.updatePhotoData.bind(this);
+    this.state = {photos: [], fetching_data: false}
   }
 
   componentDidMount(){
-    document.addEventListener('scroll', this.trackScrolling);
-    this.getThumbnails();
+    console.debug("PhotoFlowData:componentDidMount")
+    this.getPhotoData();
   }
 
-  componentWillUnmount() {
-    document.removeEventListener('scroll', this.trackScrolling);
-  }
-
-  isBottom(el) {
-    return el.getBoundingClientRect().bottom <= window.innerHeight;
-  }
-
-  trackScrolling = () => {
-    const wrappedElement = document.getElementById('photoFlowDiv');
-    if (this.isBottom(wrappedElement)) {
-      console.log('photoFlow bottom reached');
-      if(!this.state.fetching_data && this.state.last_evaluated_key){
-        /*
-        Set a state variable so that future scroll events don't trigger another
-        fetch until we've gotten a response from _this_ event.
-        */
-        this.setState({fetching_data: true});
-        this.getThumbnails();
-      }
+  componentDidUpdate(prevProps) {
+    if (this.props.filters !== prevProps.filters || this.state.photos == []) {
+      this.getPhotoData(true);
     }
-  };
+  }
 
-  async getThumbnails(){
+  getPhotoData(reset){
     var params = {}
-    for (const [key, value] of Object.entries(this.state.filters)){
+    console.debug("In getPhotoData");
+    console.debug(this.props.filters);
+
+    if(this.state.fetching_data){
+      console.log("Already fetching data, skiping data refresh.")
+      return;
+    }
+
+    if(typeof this.props.filters === 'undefined'){
+      console.debug("Filters undefined in refreshData()")
+      return;
+    }
+
+    for (const [key, value] of Object.entries(this.props.filters)){
       if (value){
         params[key] = value;
       }
     }
 
-    if(this.state.last_evaluated_key){
+    if(this.state.last_evaluated_key && !reset){
       params["lek"] = this.state.last_evaluated_key;
     }
 
-    console.log("Getting Thumbnails")
+    params["max_results"] = 50;
+
+    console.log("Getting Photo Data")
     console.log(params);
+    this.setState({fetching_data: true});
     /*
     Make sure the async process to fetch access tokens has completed before continuing.
     */
@@ -429,7 +370,15 @@ class PhotoFlow extends React.Component {
         .then(response => response.json())
         .then(data => {
           console.log(data)
-          const newPhotos = this.state.photos.concat(data["Items"])
+
+          var newPhotos;
+          if(reset){
+            newPhotos = data["Items"]
+          } else {
+            newPhotos = this.state.photos.concat(data["Items"])
+          }
+
+          console.debug(newPhotos)
           this.setState({photos: newPhotos, fetching_data: false})
 
           /*
@@ -440,15 +389,17 @@ class PhotoFlow extends React.Component {
           if ("LastEvaluatedKey" in data){
             lek = data["LastEvaluatedKey"];
           }
+          console.debug("LEK: " + lek)
           this.setState({last_evaluated_key: lek})
 
           /*
           Check to see if there are more photos to get AND we have space left
           on the visible page.  If so, keep getting thumbnails.
           */
-          if(lek && document.body.clientHeight < window.innerHeight){
-            this.getThumbnails()
-          }
+          // if(lek && document.body.clientHeight < window.innerHeight){
+          //   console.debug("MOAR DATA")
+          //   this.getPhotoData()
+          // }
         })
         .catch(error => {
           console.log(error);
@@ -456,8 +407,89 @@ class PhotoFlow extends React.Component {
     } else {
       console.log("No JWT Token yet.");
     }
-
   }
+
+  updatePhotoData(photo_id, key, value){
+    let photos = [...this.state.photos]
+    var i;
+    for (i=0; i<photos.length; i++){
+      if (photos[i]["SK"] === photo_id){
+        let photo = {...photos[i]}
+        photo[key] = value;
+        photos[i] = photo;
+        this.setState({photos: photos})
+        break;
+      }
+    }
+  }
+
+  render(){
+    console.debug("Rendering PhotoFlowData")
+    var results_truncated = false;
+    if(this.state.last_evaluated_key){
+      results_truncated = true;
+    }
+
+    return (
+        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData}/>
+    )
+  }
+}
+
+class PhotoFlow extends React.Component {
+  constructor(props){
+    super(props);
+    console.debug("PhotoFlow Constructor!")
+    this.handlePhotoFocus = this.handlePhotoFocus.bind(this)
+    this.handleMetadataUpdate = this.handleMetadataUpdate.bind(this)
+    this.closePhotoFocus = this.closePhotoFocus.bind(this)
+
+    this.state = {
+      focusPhoto:{},
+      focusModalVisible:false,
+      fetching_data: false
+    }
+  }
+
+  handleMetadataUpdate(photo_id, key, value){
+    this.props.update_metadata(photo_id, key, value);
+
+    if (this.state.focusPhoto.SK === photo_id){
+      var photo = this.state.focusPhoto;
+      photo[key] = value;
+      this.setState({"focusPhoto": photo})
+    }
+  }
+
+  handlePhotoFocus(photo){
+    this.setState({focusPhoto: photo, focusModalVisible: true});
+  }
+
+  closePhotoFocus(){
+    this.setState({focusModalVisible: false});
+  }
+
+  componentDidMount(){
+    document.addEventListener('scroll', this.trackScrolling);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('scroll', this.trackScrolling);
+  }
+
+  isBottom(el) {
+    return el.getBoundingClientRect().bottom <= window.innerHeight;
+  }
+
+  trackScrolling = () => {
+    const wrappedElement = document.getElementById('photoFlowDiv');
+    if (this.isBottom(wrappedElement)) {
+      console.log('photoFlow bottom reached');
+      if(this.props.results_truncated){
+        this.props.get_photos();
+      }
+    }
+  };
 
   render() {
     //Assume a sorted list of photos has come back from the API.
@@ -465,8 +497,8 @@ class PhotoFlow extends React.Component {
     var curr_header = ""
     var groups = 0
     //console.log(this.state.photos);
-    for(var i=0; i<this.state.photos.length; i++){
-      var photo = this.state.photos[i];
+    for(var i=0; i<this.props.photos.length; i++){
+      var photo = this.props.photos[i];
       //console.log(photo);
       if (curr_header !== photo.SK.split("T")[0]){
         curr_header = photo.SK.split("T")[0]
@@ -484,8 +516,7 @@ class PhotoFlow extends React.Component {
        <div id='photoFlowDiv'>
        <br/>
        <span className="section-title">Photos!</span>
-       <PhotoFilterPane filterHandler={this.handleFilterUpdate} filterValues={this.state.filters} />
-        <ul>
+       <ul>
           {listItems}
         </ul>
 
@@ -590,9 +621,57 @@ class PhotoFilterPane extends React.Component {
   constructor(props){
     super(props);
 
-    this.state = {"pane_open": false}
     this.togglePane = this.togglePane.bind(this)
     this.handleValueChanged = this.handleValueChanged.bind(this)
+    this.submitFilters = this.submitFilters.bind(this)
+    this.cancelFilters = this.cancelFilters.bind(this)
+    this.loadFilterValuesFromStorage = this.loadFilterValuesFromStorage.bind(this);
+    this.saveFilterValuesToStorage = this.saveFilterValuesToStorage.bind(this);
+
+    this.state = {
+      "pane_open": false,
+    }
+  }
+
+  componentDidMount(){
+    this.loadFilterValuesFromStorage();
+  }
+
+  loadFilterValuesFromStorage(){
+    var start_date = localStorage.getItem('start_date_filter')
+    if (typeof start_date === 'undefined'){
+      start_date = ""
+    }
+
+    var end_date = localStorage.getItem('end_date_filter')
+    if (typeof end_date === 'undefined'){
+      end_date = ""
+    }
+
+    console.debug("start_date: " + start_date)
+    console.debug("end_date: " + end_date)
+
+    this.setState(
+      {
+        "current_filter_values": {
+          "start_date": start_date,
+          "end_date": end_date
+        },
+        "filter_values": {
+          "start_date": start_date,
+          "end_date": end_date
+        }
+      }
+    );
+  }
+
+  saveFilterValuesToStorage(){
+    if(this.state.current_filter_values.start_date){
+      localStorage.setItem('start_date_filter', this.state.current_filter_values.start_date)
+    }
+    if(this.state.current_filter_values.end_date){
+      localStorage.setItem('end_date_filter', this.state.current_filter_values.end_date)
+    }
   }
 
   togglePane(){
@@ -602,12 +681,26 @@ class PhotoFilterPane extends React.Component {
   }
 
   handleValueChanged(field, value){
-    console.log(field)
-    console.log(value)
-    this.props.filterHandler(field, value);
+    this.setState({current_filter_values: {[field]: value}})
+  }
+
+  submitFilters(){
+    console.debug(this.state.current_filter_values)
+    this.saveFilterValuesToStorage()
+    this.togglePane()
+    this.setState({"filter_values": this.state.current_filter_values});
+  }
+
+  cancelFilters(){
+    console.debug("Cancel Filters")
+    this.loadFilterValuesFromStorage();
+    this.togglePane();
   }
 
   render(){
+    console.debug("Rendering FilterPane")
+    console.debug(this.state.filter_values)
+    const filter_values = this.state.filter_values;
     const isPaneOpen = this.state.pane_open;
     return (
       <div className="filter-pane">
@@ -621,30 +714,42 @@ class PhotoFilterPane extends React.Component {
                 <td> End Date</td>
               </tr>
               <tr>
-                <td> <FilterControl field="start_date" value={this.props.filterValues.start_date} onValueChange={this.handleValueChanged} /> </td>
-                <td> <FilterControl field="end_date" value={this.props.filterValues.end_date} onValueChange={this.handleValueChanged} /> </td>
+                <td> <DateFilterControl field="start_date" value={this.state.current_filter_values.start_date} onValueChange={this.handleValueChanged}/> </td>
+                <td> <DateFilterControl field="end_date" value={this.state.current_filter_values.end_date} onValueChange={this.handleValueChanged}/> </td>
+              </tr>
+              <tr>
+                <td> <button type="button" className="btn btn-secondary" onClick={this.submitFilters}>Submit</button> </td>
+                <td> <button type="button" className="btn btn-secondary" onClick={this.cancelFilters}>Cancel</button></td>
               </tr>
             </tbody></table>
           </div>
         }
+        <PhotoFlowData jwt={this.props.jwt} filters={filter_values}/>
       </div>
     )
   }
 }
 
-class FilterControl extends React.Component{
+class DateFilterControl extends React.Component{
   constructor(props){
     super(props);
     this.handleChange = this.handleChange.bind(this)
+    this.state = {'value': this.props.value}
   }
 
   handleChange(e){
-    this.props.onValueChange(this.props.field, e.target.value);
+    this.setState({'value': e.target.value});
+    console.debug(Date.parse(e.target.value))
+    if(Date.parse(e.target.value)){
+      console.debug("It worked!");
+      this.props.onValueChange(this.props.field, e.target.value);
+    }
   }
 
   render(){
+    console.debug("debug");
     return(
-    <input value={this.props.value} onChange={this.handleChange} />
+    <input value={this.state.value} onChange={this.handleChange} />
   )
   }
 }
