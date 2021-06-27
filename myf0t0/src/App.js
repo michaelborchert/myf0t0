@@ -343,8 +343,8 @@ class PhotoFlowData extends React.Component{
       }
     }
 
-    if(this.state.last_evaluated_key && !reset){
-      params["lek"] = this.state.last_evaluated_key;
+    if(this.state.last_photo_key && !reset){
+      params["LastPhotoKey"] = this.state.last_photo_key;
     }
 
     params["max_results"] = 50;
@@ -385,12 +385,12 @@ class PhotoFlowData extends React.Component{
           Check to see if we got a "LastEvaluatedKey".  If so, there
           are more pages of thumbnails that match our filters.
           */
-          var lek = "";
-          if ("LastEvaluatedKey" in data){
-            lek = data["LastEvaluatedKey"];
+          var lpk = "";
+          if ("LastPhotoKey" in data){
+            lpk = data["LastPhotoKey"];
           }
-          console.debug("LEK: " + lek)
-          this.setState({last_evaluated_key: lek})
+          console.debug("LPK: " + lpk)
+          this.setState({last_photo_key: lpk})
 
           /*
           Check to see if there are more photos to get AND we have space left
@@ -426,7 +426,7 @@ class PhotoFlowData extends React.Component{
   render(){
     console.debug("Rendering PhotoFlowData")
     var results_truncated = false;
-    if(this.state.last_evaluated_key){
+    if(this.state.last_photo_key){
       results_truncated = true;
     }
 

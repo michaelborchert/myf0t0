@@ -142,12 +142,13 @@ def get_photos():
         'TableName': os.environ['db_name'],
         'FilterExpression': filter_expression,
         'ConsistentRead': False,
-        'ProjectionExpression': "SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating",
+        'ProjectionExpression': "PK, SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating",
         'ExpressionAttributeValues': expression_attribute_values,
     }
 
-    if "lek" in query_params.keys():
-        scan_kwargs["ExclusiveStartKey"] = query_params["lek"]
+
+
+        #scan_kwargs["ExclusiveStartKey"] = json.loads(query_params["lek"])
 
     #Get all the photos.  This is ineffecient, but may not matter for our scale.
     done = False
@@ -164,21 +165,32 @@ def get_photos():
     #Order by date, newer photos first.
     output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
 
+    #Cut off the beginning based on the LastPhotoKey, if there is one.
+    if "LastPhotoKey" in query_params.keys():
+        print(query_params["LastPhotoKey"])
+        index=0;
+        while index < len(output["Items"]):
+            if output["Items"][index]["SK"]["S"] == query_params["LastPhotoKey"]:
+                break
+            index = index + 1
+        count = index+1
+        del output["Items"][:count]
+
     #Limit by max_results param
     if "max_results" in query_params.keys():
         if int(query_params["max_results"]) < len(output["Items"]):
             output["Items"] = output["Items"][:int(query_params["max_results"])]
-
+            print(output["Items"][-1]["SK"]["S"])
             #If any results weren't sent, calculate and add new LEK to results.
-            output["LastEvaluatedKey"] = output["Items"][-1]["SK"]["S"]
-
+            output["LastPhotoKey"] = output["Items"][-1]["SK"]["S"]
+    print("DEBUG!");
     items = item_to_dict(output["Items"])
+    print("DEBUG!");
 
     webResponse = {"Items": items}
 
-    if 'LastEvaluatedKey' in output:
-        webResponse["LastEvaluatedKey"] = output['LastEvaluatedKey']
-
+    if 'LastPhotoKey' in output:
+        webResponse["LastPhotoKey"] =  output["LastPhotoKey"]
     return webResponse
 
 def get_photos_old():
