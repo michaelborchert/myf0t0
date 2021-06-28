@@ -2,6 +2,8 @@ import React from 'react';
 import './index.css';
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
+import Dropdown from 'react-bootstrap/Dropdown'
+import DropdownButton from 'react-bootstrap/DropdownButton'
 import ReactStars from 'react-stars'
 
 var AWS = require('aws-sdk');
@@ -317,7 +319,11 @@ class PhotoFlowData extends React.Component{
   }
 
   componentDidUpdate(prevProps) {
+    console.debug("Props Comparison")
+    console.debug(prevProps.filters)
+    console.debug(this.props.filters)
     if (this.props.filters !== prevProps.filters || this.state.photos == []) {
+      console.log("Refreshing Data! ")
       this.getPhotoData(true);
     }
   }
@@ -648,18 +654,26 @@ class PhotoFilterPane extends React.Component {
       end_date = ""
     }
 
+    var rating = localStorage.getItem('rating_filter')
+    if (typeof rating === 'undefined'){
+      rating = "all"
+    }
+
     console.debug("start_date: " + start_date)
     console.debug("end_date: " + end_date)
+    console.debug("rating: " + rating)
 
     this.setState(
       {
         "current_filter_values": {
           "start_date": start_date,
-          "end_date": end_date
+          "end_date": end_date,
+          "rating": rating
         },
         "filter_values": {
           "start_date": start_date,
-          "end_date": end_date
+          "end_date": end_date,
+          "rating": rating
         }
       }
     );
@@ -672,6 +686,9 @@ class PhotoFilterPane extends React.Component {
     if(this.state.current_filter_values.end_date){
       localStorage.setItem('end_date_filter', this.state.current_filter_values.end_date)
     }
+    if(this.state.current_filter_values.rating){
+      localStorage.setItem('rating_filter', this.state.current_filter_values.rating)
+    }
   }
 
   togglePane(){
@@ -681,14 +698,23 @@ class PhotoFilterPane extends React.Component {
   }
 
   handleValueChanged(field, value){
-    this.setState({current_filter_values: {[field]: value}})
+    console.debug("In handleValueChanged")
+    console.debug("field: " + field)
+    console.debug("value: " + value)
+    var filter_vals = Object.assign({}, this.state.current_filter_values);
+    filter_vals[field] = value
+
+    console.debug(filter_vals)
+
+    this.setState({current_filter_values: filter_vals})
   }
 
   submitFilters(){
     console.debug(this.state.current_filter_values)
     this.saveFilterValuesToStorage()
     this.togglePane()
-    this.setState({"filter_values": this.state.current_filter_values});
+    var filter_vals = Object.assign({}, this.state.current_filter_values);
+    this.setState({"filter_values": filter_vals});
   }
 
   cancelFilters(){
@@ -712,10 +738,12 @@ class PhotoFilterPane extends React.Component {
               <tr>
                 <td> Start Date</td>
                 <td> End Date</td>
+                <td> Rating </td>
               </tr>
               <tr>
                 <td> <DateFilterControl field="start_date" value={this.state.current_filter_values.start_date} onValueChange={this.handleValueChanged}/> </td>
                 <td> <DateFilterControl field="end_date" value={this.state.current_filter_values.end_date} onValueChange={this.handleValueChanged}/> </td>
+                <td> <RatingFilterControl field="rating" value={this.state.current_filter_values.rating} onValueChange={this.handleValueChanged}/> </td>
               </tr>
               <tr>
                 <td> <button type="button" className="btn btn-secondary" onClick={this.submitFilters}>Submit</button> </td>
@@ -751,6 +779,46 @@ class DateFilterControl extends React.Component{
     return(
     <input value={this.state.value} onChange={this.handleChange} />
   )
+  }
+}
+
+class RatingFilterControl extends React.Component{
+  constructor(props){
+    super(props);
+    this.handleChange = this.handleChange.bind(this);
+    this.state = {'value': this.props.value}
+  }
+
+  handleChange(e){
+    console.debug(e)
+    this.setState({'value': e});
+    this.props.onValueChange(this.props.field, e);
+  }
+
+  render(){
+    const keyval = {
+      "all": "All Ratings",
+      "1": "1+",
+      "2": "2+",
+      "3": "3+",
+      "4": "4+",
+      "5": "5",
+      "unrated": "Unrated"
+    }
+
+    const title = keyval[this.state.value]
+    return (
+      <DropdownButton id="rating_filter" title={title} onSelect={this.handleChange}>
+        <Dropdown.Item eventKey="all">All Ratings</Dropdown.Item>
+        <Dropdown.Item eventKey="1">1+</Dropdown.Item>
+        <Dropdown.Item eventKey="2">2+</Dropdown.Item>
+        <Dropdown.Item eventKey="3">3+</Dropdown.Item>
+        <Dropdown.Item eventKey="4">4+</Dropdown.Item>
+        <Dropdown.Item eventKey="5">5</Dropdown.Item>
+        <Dropdown.Divider />
+        <Dropdown.Item eventKey="unrated">Unrated</Dropdown.Item>
+      </DropdownButton>
+    )
   }
 }
 
