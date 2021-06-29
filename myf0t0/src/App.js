@@ -314,24 +314,17 @@ class PhotoFlowData extends React.Component{
   }
 
   componentDidMount(){
-    console.debug("PhotoFlowData:componentDidMount")
     this.getPhotoData();
   }
 
   componentDidUpdate(prevProps) {
-    console.debug("Props Comparison")
-    console.debug(prevProps.filters)
-    console.debug(this.props.filters)
     if (this.props.filters !== prevProps.filters || this.state.photos == []) {
-      console.log("Refreshing Data! ")
       this.getPhotoData(true);
     }
   }
 
   getPhotoData(reset){
     var params = {}
-    console.debug("In getPhotoData");
-    console.debug(this.props.filters);
 
     if(this.state.fetching_data){
       console.log("Already fetching data, skiping data refresh.")
@@ -355,8 +348,6 @@ class PhotoFlowData extends React.Component{
 
     params["max_results"] = 50;
 
-    console.log("Getting Photo Data")
-    console.log(params);
     this.setState({fetching_data: true});
     /*
     Make sure the async process to fetch access tokens has completed before continuing.
@@ -384,7 +375,6 @@ class PhotoFlowData extends React.Component{
             newPhotos = this.state.photos.concat(data["Items"])
           }
 
-          console.debug(newPhotos)
           this.setState({photos: newPhotos, fetching_data: false})
 
           /*
@@ -420,9 +410,18 @@ class PhotoFlowData extends React.Component{
     var i;
     for (i=0; i<photos.length; i++){
       if (photos[i]["SK"] === photo_id){
-        let photo = {...photos[i]}
-        photo[key] = value;
-        photos[i] = photo;
+        //Check if a filter has changed such that this photo would be excluded.
+        //This should only happen if the rating filter is set to "unrated"
+        if(this.props.filters.rating === "unrated" && key === "GSI1PK"){
+          photos.splice(i, 1)
+        } else {
+          //If it wasn't a filter update, update the metadata value.
+          let photo = {...photos[i]}
+          photo[key] = value;
+          photos[i] = photo;
+        }
+
+        //No matter what changed, update the photos.
         this.setState({photos: photos})
         break;
       }
@@ -437,7 +436,7 @@ class PhotoFlowData extends React.Component{
     }
 
     return (
-        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData}/>
+        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData} jwt={this.props.jwt}/>
     )
   }
 }
