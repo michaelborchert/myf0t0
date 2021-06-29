@@ -131,11 +131,20 @@ def get_photos():
         filter_expression = "SK <= :enddate"
         expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
 
-    if "min_rating" in query_params.keys():
-        if filter_expression:
-            filter_expression = filter_expression + " AND "
-        filter_expression = filter_expression + "GSI1PK >= :rating"
-        expression_attribute_values[":rating"] = {"S": str(query_params["min_rating"])}
+    if "rating" in query_params.keys():
+        rating = query_params["rating"]
+        if rating != "any":
+            #If the filter is "any" that's the same as wide open - don't add any constraints.
+
+            if filter_expression:
+                filter_expression = filter_expression + " AND "
+
+            if rating == "unrated":
+                filter_expression = filter_expression + "GSI1PK = :rating"
+                expression_attribute_values[":rating"] = {"S": "0"}
+            else:
+                filter_expression = filter_expression + "GSI1PK >= :rating"
+                expression_attribute_values[":rating"] = {"S": rating}
 
 
     scan_kwargs = {
