@@ -112,7 +112,10 @@ class PhotoDetailData extends React.Component{
 
     var photoName = ""
     if ("SK" in this.props.data){
-      photoName = this.props.data.SK.split("_")[1];
+      //var firstIndex = this.props.data.SK.indexOf('_');
+      const sk = this.props.data.SK
+      photoName = sk.substr(sk.indexOf('_')+1)
+      //photoName = this.props.data.SK.split("_")[1];
     }
     console.debug(this.props.data);
     return(
