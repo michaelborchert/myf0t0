@@ -25,7 +25,11 @@ def get_exif(im):
     ret = {}
     info = im._getexif()
     for tag, value in info.items():
-        decoded = TAGS.get(tag, tag)
+        try:
+            decoded = TAGS.get(tag, tag)
+        except:
+            print("Failed to decode EXIF tag " + tag)
+
         ret[decoded] = value
     return ret
 
@@ -42,7 +46,7 @@ def dict_to_item(raw):
     if isinstance(raw, dict):
         return {
             'M': {
-                k: dict_to_item(v)
+                str(k): dict_to_item(v)
                 for k, v in raw.items()
             }
         }
@@ -76,8 +80,6 @@ def handler(event, context):
                 return {
                     "message": "Error."
                 }
-
-
 
 def handleS3Event(s3_record):
     print(s3_record)
@@ -129,6 +131,10 @@ def processNewObject(key, filename, file_id, file_type):
     print(key)
     print(thumbnail_key)
 
+    exif_item = dict_to_item(exif_data)
+
+    print(exif_item)
+
     response = dynamo.put_item(
             TableName=os.environ['db_name'],
             Item={
@@ -137,7 +143,7 @@ def processNewObject(key, filename, file_id, file_type):
                 "GSI1PK": {"S": "0"},
                 "GSI1SK": {"S": key},
                 "thumbnail_key": {"S": thumbnail_key},
-                "exif": dict_to_item(exif_data)
+                "exif": exif_item
             }
         )
     print(response)

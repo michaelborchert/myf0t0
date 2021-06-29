@@ -502,20 +502,23 @@ class PhotoFlow extends React.Component {
     var curr_header = ""
     var groups = 0
     //console.log(this.state.photos);
-    for(var i=0; i<this.props.photos.length; i++){
-      var photo = this.props.photos[i];
-      //console.log(photo);
-      if (curr_header !== photo.SK.split("T")[0]){
-        curr_header = photo.SK.split("T")[0]
-        photo_groups.push({header: curr_header, photos: []});
-        groups++;
-      }
-      photo_groups[groups-1]['photos'].push(photo);
-    };
+    var listItems = "No Photos To Display."
+    if(this.props.photos){
+      for(var i=0; i<this.props.photos.length; i++){
+        var photo = this.props.photos[i];
+        //console.log(photo);
+        if (curr_header !== photo.SK.split("T")[0]){
+          curr_header = photo.SK.split("T")[0]
+          photo_groups.push({header: curr_header, photos: []});
+          groups++;
+        }
+        photo_groups[groups-1]['photos'].push(photo);
+      };
 
-    const listItems = photo_groups.map((photo_data) => (
-        <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
-    ));
+      listItems = photo_groups.map((photo_data) => (
+          <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
+      ));
+    }
 
     return (
        <div id='photoFlowDiv'>

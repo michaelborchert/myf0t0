@@ -86,6 +86,24 @@ Resources:
               - !GetAtt ViewerRole.Arn
               - !GetAtt AdminRole.Arn
               - !GetAtt LambdaRole.Arn
+              - !GetAtt PhotographerUser.Arn
+  PhotographerUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:*
+                Resource:
+                  - !GetAtt PhotoBucket.Arn
+  PhotographerAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName:
+        !Ref PhotographerUser
   AppBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -593,3 +611,8 @@ Outputs:
   APIEndpoint:
     Value: !Sub https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${ApiStage}
     Description: API Endpoint for REST API's
+  AccessKeyForPhotographer:
+    Value:
+      !Ref PhotographerAccessKey
+  SecretKeyForPhotographer:
+    Value: !GetAtt PhotographerAccessKey.SecretAccessKey
