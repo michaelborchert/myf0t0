@@ -133,8 +133,8 @@ def get_photos():
 
     if "rating" in query_params.keys():
         rating = query_params["rating"]
-        if rating != "any":
-            #If the filter is "any" that's the same as wide open - don't add any constraints.
+        if rating != "all":
+            #If the filter is "all" that's the same as wide open - don't add any constraints.
 
             if filter_expression:
                 filter_expression = filter_expression + " AND "
@@ -146,14 +146,19 @@ def get_photos():
                 filter_expression = filter_expression + "GSI1PK >= :rating"
                 expression_attribute_values[":rating"] = {"S": rating}
 
+    print(filter_expression)
 
     scan_kwargs = {
         'TableName': os.environ['db_name'],
-        'FilterExpression': filter_expression,
         'ConsistentRead': False,
         'ProjectionExpression': "PK, SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating",
-        'ExpressionAttributeValues': expression_attribute_values,
     }
+
+    if filter_expression:
+        scan_kwargs['FilterExpression'] = filter_expression,
+
+    if expression_attribute_values:
+        scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
 
 
 

@@ -1,8 +1,8 @@
 Next Steps:
-  * Rating & Tagging Apis
-  * Wire front-end Rating to API
-  * Look at filters - probably need to wait until valid date before refreshing photos, need to do some real testing.
-  * Figure out mobile experience with S3 client
+  * Tagging Apis
+  * Add tags to detail view & filter
+  * Compile & host from S3
+  * Medium-sized thumbnail for detail view
   * Demo!
 
 Goals:
@@ -15,7 +15,7 @@ MVP Needs:
 * Storage (S3)
 * Metadata store (Dynamo)
 * Authn/z (Cognito)
-* API tier (Lambda/Python/Flask)
+* API tier (Lambda/Python/Chalice)
 * Processing Tier (Lambda)
 * Front-end (React on S3)
 * App Features:
@@ -55,7 +55,14 @@ Front-end:
 - Search results
 
 Backlog:
+- Hover tagging - select from the 5 most recently applied tags
+- Download link for raw file
+- Group operations
+- Notes per photo and per gallery
+- RSS feeds for galleries
 - OpSec: AWS Config, CloudWatch Alarms
 - Uploads.  Agents?
 - Mobile
 - Multi-region support - multi-region dist buckets and CFN map
+- Hover-to-zoom-by-double?  Makes it easier to rate from photoFlow
+- Lightroom-style - one big image with a row of thumbnails along the bottom

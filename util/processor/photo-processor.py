@@ -111,9 +111,9 @@ def processNewObject(key, filename, file_id, file_type):
     im = Image.open("/tmp/"+filename)
     exif_data = get_exif(im)
     print(exif_data)
-    im.thumbnail(THUMBNAIL_SIZE)
+    im.thumbnail(THUMBNAIL_SIZE, Image.ANTIALIAS)
     thumbnail_filename = file_id + ".thumbnail"
-    im.save("/tmp/" + thumbnail_filename, "JPEG")
+    im.save("/tmp/" + thumbnail_filename, "JPEG", exif=im.info["exif"])
     thumbnail_key = "thmb/"+stripped_key
     s3.Bucket(BUCKET_NAME).upload_file(
         "/tmp/"+thumbnail_filename,
