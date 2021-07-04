@@ -312,16 +312,35 @@ def put_tag():
     body = app.current_request.json_body
     if "photo_id" not in body or "tag" not in body:
         return Response(body='Malformed body', status_code=400)
+
     args = {
         'TableName': os.environ['db_name'],
         'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
         'UpdateExpression': "ADD tags :tag",
         'ExpressionAttributeValues': {
             ":tag": {"SS": [str(body["tag"])]},
-        }
+        },
+        'ReturnValues': "ALL_NEW"
     }
 
     response = photo_update(**args)
+
+    print(response)
+
+    if response:
+        args = {
+            'TableName': os.environ['db_name'],
+            'Item': {
+                "PK" : {"S": "tag:"+str(body["tag"])},
+                "SK" : {"S": body["photo_id"]},
+                "GSI1SK": response["Attributes"]["GSI1SK"],
+                "thumbnail_key": response["Attributes"]["thumbnail_key"]
+            }
+        }
+
+        tag_insert_response = db_client.put_item(**args)
+
+        print(tag_insert_response)
 
     return  {"message": "tag saved."}
 
@@ -336,11 +355,24 @@ def delete_tag():
         'UpdateExpression': "delete tags :tag",
         'ExpressionAttributeValues': {
             ":tag": {"SS": [str(body["tag"])]},
-        }
+        },
+        'ReturnValues': "ALL_NEW"
     }
 
     response = photo_update(**args)
 
+    if response:
+        args = {
+            'TableName': os.environ['db_name'],
+            'Key': {
+                "PK" : {"S": "tag:"+str(body["tag"])},
+                "SK" : {"S": body["photo_id"]},
+            }
+        }
+
+        tag_insert_response = db_client.delete_item(**args)
+
+        print(tag_insert_response)
     return  {"message": "tag removed."}
 
 @app.route("/spec")
