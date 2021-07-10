@@ -51,7 +51,8 @@ def photo_query(**kwargs):
 
 def photo_update(**kwargs):
     if ("PK" in kwargs["Key"]):
-        filename = kwargs["Key"]["SK"]["S"].split("_")[1]
+        filename_parts = kwargs["Key"]["SK"]["S"].split("_")[1:]
+        filename = "_".join(filename_parts);
         primary_key = "photos{}".format(get_index_hash(filename))
         kwargs["Key"]["PK"]["S"] = primary_key
 
@@ -73,6 +74,10 @@ def item_to_dict(item):
                         #output[k] = b_string.decode('UTF-16')
                         #I cannot figure out how to turn EXIF byte strings into anything intelligible!
                         pass
+                    elif type == "SS":
+                        output[k] = []
+                        for sub_item in v[type]:
+                            output[k].append(sub_item);
                     else:
                         output[k] = str(v[type])
             else:
@@ -118,17 +123,17 @@ def get_photos():
     if not query_params:
         query_params = {}
 
-    filter_expression = ""
-    expression_attribute_values = {}
+    filter_expression = "PK BETWEEN :photostart AND :photoend"
+    expression_attribute_values = {":photostart": {"S": "photos0"}, ":photoend": {"S": "photos5"}}
     if "start_date" in query_params.keys() and "end_date" in query_params.keys():
-        filter_expression = "SK BETWEEN :startdate AND :enddate"
+        filter_expression = " AND SK BETWEEN :startdate AND :enddate"
         expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
         expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
     elif "start_date" in query_params.keys():
-        filter_expression = "SK > :startdate"
+        filter_expression = " AND SK > :startdate"
         expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
     elif "end_date" in query_params.keys():
-        filter_expression = "SK <= :enddate"
+        filter_expression = " AND SK <= :enddate"
         expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
 
     if "rating" in query_params.keys():
@@ -136,14 +141,11 @@ def get_photos():
         if rating != "all":
             #If the filter is "all" that's the same as wide open - don't add any constraints.
 
-            if filter_expression:
-                filter_expression = filter_expression + " AND "
-
             if rating == "unrated":
-                filter_expression = filter_expression + "GSI1PK = :rating"
+                filter_expression = filter_expression + " AND GSI1PK = :rating"
                 expression_attribute_values[":rating"] = {"S": "0"}
             else:
-                filter_expression = filter_expression + "GSI1PK >= :rating"
+                filter_expression = filter_expression + " AND GSI1PK >= :rating"
                 expression_attribute_values[":rating"] = {"S": rating}
 
     print(filter_expression)
@@ -151,11 +153,11 @@ def get_photos():
     scan_kwargs = {
         'TableName': os.environ['db_name'],
         'ConsistentRead': False,
-        'ProjectionExpression': "PK, SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating",
+        'ProjectionExpression': "PK, SK, GSI1PK, GSI1SK, exif, thumbnail_key, rating, tags",
     }
 
     if filter_expression:
-        scan_kwargs['FilterExpression'] = filter_expression,
+        scan_kwargs['FilterExpression'] = filter_expression
 
     if expression_attribute_values:
         scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
@@ -309,21 +311,25 @@ def put_rating():
 
 @app.route("/tag", methods=['PUT'], cors=cors_config)
 def put_tag():
-    body = app.current_request.json_body
-    if "photo_id" not in body or "tag" not in body:
+    #body = app.current_request.json_body
+    params = app.current_request.query_params
+    if "photo_id" not in params or "tag" not in params:
         return Response(body='Malformed body', status_code=400)
 
     args = {
         'TableName': os.environ['db_name'],
-        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": params["photo_id"]}},
         'UpdateExpression': "ADD tags :tag",
         'ExpressionAttributeValues': {
-            ":tag": {"SS": [str(body["tag"])]},
+            ":tag": {"SS": [str(params["tag"])]},
         },
         'ReturnValues': "ALL_NEW"
     }
 
     response = photo_update(**args)
+
+    updated_pk = response["Attributes"]["PK"]
+    updated_sk = response["Attributes"]["SK"]
 
     print(response)
 
@@ -331,8 +337,8 @@ def put_tag():
         args = {
             'TableName': os.environ['db_name'],
             'Item': {
-                "PK" : {"S": "tag:"+str(body["tag"])},
-                "SK" : {"S": body["photo_id"]},
+                "PK" : {"S": "tag:"+str(params["tag"])},
+                "SK" : {"S": params["photo_id"]},
                 "GSI1SK": response["Attributes"]["GSI1SK"],
                 "thumbnail_key": response["Attributes"]["thumbnail_key"]
             }
@@ -346,15 +352,15 @@ def put_tag():
 
 @app.route("/tag", methods=['DELETE'], cors=cors_config)
 def delete_tag():
-    body = app.current_request.json_body
-    if "photo_id" not in body or "tag" not in body:
+    params = app.current_request.query_params
+    if "photo_id" not in params or "tag" not in params:
         return Response(body='Malformed body', status_code=400)
     args = {
         'TableName': os.environ['db_name'],
-        'Key': {"PK": {"S": "$photos"}, "SK": {"S": body["photo_id"]}},
+        'Key': {"PK": {"S": "$photos"}, "SK": {"S": params["photo_id"]}},
         'UpdateExpression': "delete tags :tag",
         'ExpressionAttributeValues': {
-            ":tag": {"SS": [str(body["tag"])]},
+            ":tag": {"SS": [str(params["tag"])]},
         },
         'ReturnValues': "ALL_NEW"
     }
@@ -365,14 +371,14 @@ def delete_tag():
         args = {
             'TableName': os.environ['db_name'],
             'Key': {
-                "PK" : {"S": "tag:"+str(body["tag"])},
-                "SK" : {"S": body["photo_id"]},
+                "PK" : {"S": "tag:"+str(params["tag"])},
+                "SK" : {"S": params["photo_id"]},
             }
         }
 
-        tag_insert_response = db_client.delete_item(**args)
+        tag_delete_response = db_client.delete_item(**args)
 
-        print(tag_insert_response)
+        print(tag_delete_response)
     return  {"message": "tag removed."}
 
 @app.route("/spec")

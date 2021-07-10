@@ -1,5 +1,6 @@
 import React from 'react';
 import './index.css';
+import Badge from 'react-bootstrap/Badge'
 import Modal from 'react-bootstrap/Modal'
 import Button from 'react-bootstrap/Button'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -122,9 +123,181 @@ class PhotoDetailData extends React.Component{
       <div className="photo-data">
         { photoName && <h1> {photoName}</h1>}
         <PhotoRating data={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
+        <PhotoTagPane photo={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler} />
         { exif &&
           <PhotoExifData exif={exif} />
         }
+      </div>
+    )
+  }
+
+}
+
+class PhotoTagCloud extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    var tagList = "No Tags."
+    if(this.props.tags){
+      tagList = this.props.tags.map((tag) => (
+          <PhotoTag tag={tag} removeTagFunction={this.props.removeTagFunction}/>
+      ));
+    }
+
+    return(
+      <div className="tag-cloud">
+      <ul>
+       {tagList}
+     </ul>
+     </div>
+   )
+  }
+
+}
+
+class PhotoTag extends React.Component{
+  constructor(props){
+    super(props);
+  }
+
+  getTagColor(tag){
+      //TODO - use a pseudorandom color based on the Tag name as a seed
+      var myrng = new Math.seedrandom(tag);
+      var color_index = Math.round(5.0 * myrng.quick())
+      const colors = ["green", "red", "blue", "yellow", "orange", "light-blue"]
+      return(colors[color_index])
+  }
+
+  removeButtonHandler = () => {
+    this.props.removeTagFunction(this.props.tag)
+  }
+
+  render(){
+    const style = {"background-color": this.getTagColor(this.props.tag)}
+    return(
+      <div className="photo-tag" style={style} >
+        <span> {this.props.tag} </span> <button  type="button" className="tag-button" onClick={this.removeButtonHandler}>x</button>
+      </div>
+    )
+  }
+}
+
+class PhotoTagInput extends React.Component{
+  constructor(props){
+    super(props);
+    this.state = {"tag_value": ""}
+    this.handleChange = this.handleChange.bind(this);
+  }
+
+  addButtonHandler = () => {
+    this.props.addTagFunction(this.state.tag_value)
+    this.setState({"tag_value": ""})
+  }
+
+  handleChange = (e) => {
+    this.setState({"tag_value": e.target.value})
+  }
+
+  render(){
+    const curr_value = this.state.tag_value;
+    return(
+      <div className="tag-input">
+        Add Tag: <input className="tag-input-box" value={curr_value} onChange={this.handleChange} />
+        { curr_value &&
+          <button  type="button" className="btn btn-secondary tag-input-button" onClick={this.addButtonHandler}>ok</button>
+        }
+      </div>
+    )
+  }
+}
+
+class PhotoTagPane extends React.Component{
+  constructor(props){
+    super(props);
+    this.addTag = this.addTag.bind(this);
+    this.removeTag = this.removeTag.bind(this);
+  }
+
+  async addTag(tag){
+    //Make the API call to add the Tag.
+    console.debug(this.props);
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/tag");
+      const params = {"photo_id": this.props.photo.SK, "tag": tag}
+      console.debug(params);
+      url.search = new URLSearchParams(params).toString();
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+
+          //Update the metadata state to add the tag.
+          console.debug(this.props.photo.tags);
+          var new_tags = [...this.props.photo.tags];
+          new_tags.push(tag)
+          this.props.updateHandler(this.props.photo.SK, "tags", new_tags)
+        })
+    }
+  }
+
+  async removeTag(tag){
+    //Make the API call to remove the Tag
+    console.debug(this.props);
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/tag");
+      const params = {"photo_id": this.props.photo.SK, "tag": tag}
+      console.debug(params);
+      url.search = new URLSearchParams(params).toString();
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+
+          //Update the metadata state to add the tag.
+          console.debug(this.props.photo.tags);
+          var new_tags = [...this.props.photo.tags];
+
+          var tag_index = -1;
+          for (var i=0; i<new_tags.length; i++){
+            console.debug(new_tags[i] + " =?= " +tag);
+            if (new_tags[i] === tag){
+              tag_index = i;
+            }
+          }
+
+          console.debug("tag_index: " + tag_index.toString());
+
+          if(tag_index > -1){
+            new_tags.splice(tag_index, 1)
+            this.props.updateHandler(this.props.photo.SK, "tags", new_tags)
+          }
+        })
+    }
+  }
+
+  render(){
+    return(
+      <div id="tag-pane" className="tag-pane">
+        <PhotoTagCloud tags={this.props.photo.tags} removeTagFunction={this.removeTag }/>
+        <PhotoTagInput addTagFunction={this.addTag} />
       </div>
     )
   }

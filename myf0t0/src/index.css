@@ -49,6 +49,62 @@ body {
   overflow-y: scroll;
 }
 
+.photo-tag {
+  float: left;
+  width: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 25px;
+  border-radius: 10px;
+  padding-left: 4px;
+  margin: 2px 5px 2px 5px;
+}
+
+.tag-button {
+  margin-left: 5px;
+  margin-right: 5px;
+  height: 20px;
+  background-color: Transparent;
+  background-repeat:no-repeat;
+  border: none;
+  outline:none;
+  border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.tag-button:hover{
+  background-color: black;
+  color: white;
+}
+
+.tag-cloud {
+  display: block;
+}
+
+.tag-pane {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+}
+
+.tag-input {
+  display: block;
+}
+
+.tag-input-box {
+  border-radius: 10px;
+}
+
+.tag-input-button {
+  padding: 1px;
+  margin: 1px;
+  background-color: none;
+}
+
 .detail-photo {
   height: 98%;
 }

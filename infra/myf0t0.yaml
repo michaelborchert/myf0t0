@@ -315,6 +315,8 @@ Resources:
     DependsOn:
       - PhotoGetRequest
       - PhotoPutRequest
+      - RatingPutRequest
+      - TagPutRequest
     Properties:
       RestApiId: !Ref RestApi
       StageName: DummyStage
@@ -432,6 +434,80 @@ Resources:
           ResponseParameters:
             method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
             method.response.header.Access-Control-Allow-Methods: "'PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  TagResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: "tag"
+  TagPutRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TagResource
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
+      HttpMethod: PUT
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  TagDeleteRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref TagResource
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
+      HttpMethod: DELETE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  TagOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId:
+        Ref: RestApi
+      ResourceId:
+        Ref: TagResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'DELETE,PUT,OPTIONS'"
             method.response.header.Access-Control-Allow-Origin: "'*'"
           ResponseTemplates:
             application/json: ''
