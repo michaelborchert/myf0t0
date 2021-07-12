@@ -243,7 +243,10 @@ class PhotoTagPane extends React.Component{
 
           //Update the metadata state to add the tag.
           console.debug(this.props.photo.tags);
-          var new_tags = [...this.props.photo.tags];
+          var new_tags = []
+          if (this.props.photo.tags){
+            new_tags = [...this.props.photo.tags];
+          }
           new_tags.push(tag)
           this.props.updateHandler(this.props.photo.SK, "tags", new_tags)
         })
@@ -837,21 +840,29 @@ class PhotoFilterPane extends React.Component {
       rating = "all"
     }
 
+    var tags = localStorage.getItem('tags_filter')
+    if ( typeof tags === 'undefined'){
+      tags = ""
+    }
+
     console.debug("start_date: " + start_date)
     console.debug("end_date: " + end_date)
     console.debug("rating: " + rating)
+    console.debug("tags: " + tags)
 
     this.setState(
       {
         "current_filter_values": {
           "start_date": start_date,
           "end_date": end_date,
-          "rating": rating
+          "rating": rating,
+          "tags": tags
         },
         "filter_values": {
           "start_date": start_date,
           "end_date": end_date,
-          "rating": rating
+          "rating": rating,
+          "tags": tags
         }
       }
     );
@@ -866,6 +877,9 @@ class PhotoFilterPane extends React.Component {
     }
     if(this.state.current_filter_values.rating){
       localStorage.setItem('rating_filter', this.state.current_filter_values.rating)
+    }
+    if(this.state.current_filter_values.tags){
+      localStorage.setItem('tags_filter', this.state.current_filter_values.tags)
     }
   }
 
@@ -917,11 +931,13 @@ class PhotoFilterPane extends React.Component {
                 <td> Start Date</td>
                 <td> End Date</td>
                 <td> Rating </td>
+                <td> Tags </td>
               </tr>
               <tr>
                 <td> <DateFilterControl field="start_date" value={this.state.current_filter_values.start_date} onValueChange={this.handleValueChanged}/> </td>
                 <td> <DateFilterControl field="end_date" value={this.state.current_filter_values.end_date} onValueChange={this.handleValueChanged}/> </td>
                 <td> <RatingFilterControl field="rating" value={this.state.current_filter_values.rating} onValueChange={this.handleValueChanged}/> </td>
+                <td> <TagsFilterControl field="tags" value={this.state.current_filter_values.tags} onValueChange={this.handleValueChanged}/></td>
               </tr>
               <tr>
                 <td> <button type="button" className="btn btn-secondary" onClick={this.submitFilters}>Submit</button> </td>
@@ -996,6 +1012,25 @@ class RatingFilterControl extends React.Component{
         <Dropdown.Divider />
         <Dropdown.Item eventKey="unrated">Unrated</Dropdown.Item>
       </DropdownButton>
+    )
+  }
+}
+
+class TagsFilterControl extends React.Component{
+  constructor(props){
+    super(props);
+    this.handleChange = this.handleChange.bind(this);
+    this.state = {'value': this.props.value}
+  }
+
+  handleChange(e){
+    this.setState({'value': e.target.value});
+    this.props.onValueChange(this.props.field, e.target.value);
+  }
+
+  render(){
+    return(
+      <input value={this.state.value} onChange={this.handleChange} />
     )
   }
 }

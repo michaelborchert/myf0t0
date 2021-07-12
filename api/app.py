@@ -148,6 +148,14 @@ def get_photos():
                 filter_expression = filter_expression + " AND GSI1PK >= :rating"
                 expression_attribute_values[":rating"] = {"S": rating}
 
+    if "tags" in query_params.keys():
+        tag_list = query_params["tags"].split(",")
+        print(tag_list)
+        for i in range(0, len(tag_list)):
+            tag_index_name = ":tag"+str(i)
+            filter_expression = filter_expression + " AND contains (tags, " + tag_index_name + ")"
+            expression_attribute_values[tag_index_name] = {"S": tag_list[i]}
+
     print(filter_expression)
 
     scan_kwargs = {
