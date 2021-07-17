@@ -1,8 +1,10 @@
 Next Steps:
-  * Add tags to detail view & filter
-  * Compile & host from S3
-  * Medium-sized thumbnail for detail view
+  * Create gallery
+  ? Next/Previous navigation
+  ? Tag auto-suggest
   * Demo!
+    ? Medium-sized thumbnail for detail view - is this still needed with current speed?
+
 
 Goals:
 * Distributable - non-technical users should be able to deploy the whole app.  Suggests a single CFN template and/or AWS Marketplace.

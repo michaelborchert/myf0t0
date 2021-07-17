@@ -109,8 +109,50 @@ Resources:
     Properties:
       AccessControl: PublicRead
       WebsiteConfiguration:
-        IndexDocument: index.js
-        ErrorDocument: error.html
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "No Comment"
+  AppCloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - OriginAccessIdentity
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+          Compress: True
+          TargetOriginId: "website"
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: "index.html"
+        Enabled: True
+        Origins:
+          - DomainName: !Sub "${AppBucket}.s3.${AWS::Region}.amazonaws.com"
+            Id: "website"
+            S3OriginConfig:
+              OriginAccessIdentity: !Join ['', ['origin-access-identity/cloudfront/', !Ref OriginAccessIdentity]]
+        PriceClass: PriceClass_100
+  AppBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - AppBucket
+    Properties:
+      Bucket: !Ref AppBucket
+      PolicyDocument:
+        Statement:
+          - Action: 's3:GetObject'
+            Effect: Allow
+            Resource:
+              - !Sub 'arn:aws:s3:::${AppBucket}/*'
+            Principal:
+              CanonicalUser: !GetAtt OriginAccessIdentity.S3CanonicalUserId
   MetadataDb:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -560,8 +602,8 @@ Resources:
           - ''
           - - "https://"
             - !GetAtt
-              - AppBucket
-              - WebsiteURL
+              - AppCloudFrontDistribution
+              - DomainName
             - "/"
       ClientName: "MyF0t0"
       DefaultRedirectURI: "http://localhost:3000/"
@@ -692,3 +734,6 @@ Outputs:
       !Ref PhotographerAccessKey
   SecretKeyForPhotographer:
     Value: !GetAtt PhotographerAccessKey.SecretAccessKey
+  WebsiteURL:
+    Value: !GetAtt AppCloudFrontDistribution.DomainName
+    Description: URL for the hosted website
