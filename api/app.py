@@ -1,9 +1,12 @@
 from chalice import Chalice, CORSConfig, Response
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 import datetime
 import hashlib
+import random
+import string
 import base64
 import json
 import os
@@ -15,6 +18,7 @@ cors_config = CORSConfig(
     allow_credentials=True)
 
 db_client = boto3.client('dynamodb')
+db = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
 
 def get_index_hash(filename):
@@ -112,6 +116,7 @@ def create_presigned_url(bucket_name, object_name, expiration=3600):
     # The response contains the presigned URL
     return response
 
+
 @app.route("/", methods=['GET'])
 def hello():
   return {"hello": "world"}
@@ -122,22 +127,24 @@ def get_photos():
     print(app.current_request.to_dict())
     if not query_params:
         query_params = {}
+    return get_photos_from_filters(query_params, query_params.get("max_results", 50), query_params.get("LastPhotoKey", None))
 
+def get_photos_from_filters(filters, max_items, last_key=None):
     filter_expression = "PK BETWEEN :photostart AND :photoend"
     expression_attribute_values = {":photostart": {"S": "photos0"}, ":photoend": {"S": "photos5"}}
-    if "start_date" in query_params.keys() and "end_date" in query_params.keys():
-        filter_expression = " AND SK BETWEEN :startdate AND :enddate"
-        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
-        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
-    elif "start_date" in query_params.keys():
-        filter_expression = " AND SK > :startdate"
-        expression_attribute_values[":startdate"] = {"S": query_params["start_date"]}
-    elif "end_date" in query_params.keys():
-        filter_expression = " AND SK <= :enddate"
-        expression_attribute_values[":enddate"] = {"S": query_params["end_date"]}
+    if "start_date" in filters.keys() and "end_date" in filters.keys():
+        filter_expression = filter_expression + " AND SK BETWEEN :startdate AND :enddate"
+        expression_attribute_values[":startdate"] = {"S": filters["start_date"]}
+        expression_attribute_values[":enddate"] = {"S": filters["end_date"]}
+    elif "start_date" in filters.keys():
+        filter_expression = filter_expression + " AND SK > :startdate"
+        expression_attribute_values[":startdate"] = {"S": filters["start_date"]}
+    elif "end_date" in filters.keys():
+        filter_expression = filter_expression + " AND SK <= :enddate"
+        expression_attribute_values[":enddate"] = {"S": filters["end_date"]}
 
-    if "rating" in query_params.keys():
-        rating = query_params["rating"]
+    if "rating" in filters.keys():
+        rating = filters["rating"]
         if rating != "all":
             #If the filter is "all" that's the same as wide open - don't add any constraints.
 
@@ -148,8 +155,8 @@ def get_photos():
                 filter_expression = filter_expression + " AND GSI1PK >= :rating"
                 expression_attribute_values[":rating"] = {"S": rating}
 
-    if "tags" in query_params.keys():
-        tag_list = query_params["tags"].split(",")
+    if "tags" in filters.keys():
+        tag_list = filters["tags"].split(",")
         print(tag_list)
         for i in range(0, len(tag_list)):
             tag_index_name = ":tag"+str(i)
@@ -170,10 +177,6 @@ def get_photos():
     if expression_attribute_values:
         scan_kwargs['ExpressionAttributeValues'] = expression_attribute_values
 
-
-
-        #scan_kwargs["ExclusiveStartKey"] = json.loads(query_params["lek"])
-
     #Get all the photos.  This is ineffecient, but may not matter for our scale.
     done = False
     start_key = None
@@ -190,20 +193,20 @@ def get_photos():
     output["Items"] = sorted(output["Items"], key=lambda i: i["SK"]["S"], reverse=True)
 
     #Cut off the beginning based on the LastPhotoKey, if there is one.
-    if "LastPhotoKey" in query_params.keys():
-        print(query_params["LastPhotoKey"])
+    if last_key:
+        print(last_key)
         index=0;
         while index < len(output["Items"]):
-            if output["Items"][index]["SK"]["S"] == query_params["LastPhotoKey"]:
+            if output["Items"][index]["SK"]["S"] == last_key:
                 break
             index = index + 1
         count = index+1
         del output["Items"][:count]
 
     #Limit by max_results param
-    if "max_results" in query_params.keys():
-        if int(query_params["max_results"]) < len(output["Items"]):
-            output["Items"] = output["Items"][:int(query_params["max_results"])]
+    if max_items:
+        if int(max_items) < len(output["Items"]):
+            output["Items"] = output["Items"][:int(max_items)]
             print(output["Items"][-1]["SK"]["S"])
             #If any results weren't sent, calculate and add new LEK to results.
             output["LastPhotoKey"] = output["Items"][-1]["SK"]["S"]
@@ -211,11 +214,11 @@ def get_photos():
     items = item_to_dict(output["Items"])
     print("DEBUG!");
 
-    webResponse = {"Items": items}
+    response = {"Items": items}
 
     if 'LastPhotoKey' in output:
-        webResponse["LastPhotoKey"] =  output["LastPhotoKey"]
-    return webResponse
+        response["LastPhotoKey"] =  output["LastPhotoKey"]
+    return response
 
 def get_photos_old():
     #print(json.dumps(app.current_request.to_dict(), indent=2))
@@ -388,6 +391,74 @@ def delete_tag():
 
         print(tag_delete_response)
     return  {"message": "tag removed."}
+
+@app.route("/gallery", methods=['PUT'], cors=cors_config)
+def put_gallery():
+    params = app.current_request.query_params
+    if "filters" not in params or "name" not in params:
+        return Response(body='Malformed body',
+                        status_code=400)
+
+    #generate unique URL
+    characters = string.ascii_lowercase + string.digits
+    gallery_id = ''.join(random.choice(characters) for i in range(24))
+
+    table = db.Table(os.environ['db_name'])
+    response  = table.put_item(
+        Item= {
+            'PK': "gallery",
+            'SK': params["name"],
+            'GSI1PK': "gallery",
+            'GSI1SK': gallery_id,
+            'filters': params["filters"]
+        }
+    )
+
+    return {'message': 'gallery saved'}
+
+@app.route("/gallery", methods=['DELETE'], cors=cors_config)
+def delete_gallery():
+    params = app.current_request.query_params
+    if "name" not in params:
+        return Response(body='Malformed body',
+                        status_code=400)
+
+    table = db.Table(os.environ['db_name'])
+    try:
+        response = table.delete_item(
+            Key={
+                'PK': "gallery",
+                'SK': params["name"]
+            }
+        )
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return {'message': 'gallery deleted'}
+
+@app.route("/gallery/{id}", methods=['GET'], cors=cors_config)
+def get_gallery(id):
+    table = db.Table(os.environ['db_name'])
+    response = table.query(
+        IndexName="GSI1",
+        KeyConditionExpression=Key('GSI1PK').eq("gallery") & Key('GSI1SK').eq(id)
+    )
+    print(response)
+
+    if "filters" in response["Items"][0].keys():
+        filters = json.loads(response["Items"][0]["filters"])
+        print(filters)
+        return(get_photos_from_filters(filters, 200))
+    else:
+        return {'message': 'Something went wrong - no filters found.'}
+
+@app.route("/gallerylist", methods=['GET'], cors=cors_config)
+def get_gallerylist():
+    table = db.Table(os.environ['db_name'])
+    response = table.query(
+        KeyConditionExpression=Key('PK').eq("gallery")
+    )
+    return response
 
 @app.route("/spec")
 def spec():

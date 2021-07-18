@@ -565,6 +565,117 @@ Resources:
             method.response.header.Access-Control-Allow-Headers: false
             method.response.header.Access-Control-Allow-Methods: false
             method.response.header.Access-Control-Allow-Origin: false
+  GalleryResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: "gallery"
+  GalleryPutRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref GalleryResource
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
+      HttpMethod: PUT
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  GalleryDeleteRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref GalleryResource
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
+      HttpMethod: DELETE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  GalleryOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      RestApiId:
+        Ref: RestApi
+      ResourceId:
+        Ref: GalleryResource
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+            method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,PUT,OPTIONS'"
+            method.response.header.Access-Control-Allow-Origin: "'*'"
+          ResponseTemplates:
+            application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: 'Empty'
+        ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+  GalleryGetRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref GalleryResource
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
+  GalleryListResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: "gallerylist"
+  GalleryListGetRequest:
+    Type: AWS::ApiGateway::Method
+    DependsOn: ApiFunctionPermission
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref GalleryListResource
+      AuthorizationScopes:
+        - profile
+        - email
+        - openid
+        - aws.cognito.signin.user.admin
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiAuthorizer
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ApiFunction.Arn}/invocations
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:

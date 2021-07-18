@@ -1,5 +1,7 @@
 Next Steps:
-  * Create gallery
+  * Empty filter values (maybe only 'tags'?) don't get persisted to localStorage on "Submit"
+  * Create/Delete/View gallery
+  * Styling improvements
   ? Next/Previous navigation
   ? Tag auto-suggest
   * Demo!
@@ -67,3 +69,18 @@ Backlog:
 - Multi-region support - multi-region dist buckets and CFN map
 - Hover-to-zoom-by-double?  Makes it easier to rate from photoFlow
 - Lightroom-style - one big image with a row of thumbnails along the bottom
+
+Deployment Steps:
+1) Deploy CFN Template
+2) Deploy API Gateway to LATEST stage
+2) Write variables into .env file
+3) Run myf0t0/deploy.sh
+
+Update Steps:
+1) Update CFN stack
+2) Deploy API Gateway to LATEST stage
+3) deploy processor function from myf0t0dist bucket
+4) deploy API function from myf0t0dist bucket
+5) write new .env file
+6) run myf0t0/deploy.sh
+7) reindex all photos (conditionally)
