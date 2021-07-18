@@ -67,11 +67,13 @@ class Content extends React.Component {
   }
 
   render(){
+    console.log(this.props);
     return (
       <div className="content">
         {this.props.view === "Photos" && <PhotoFilterPane jwt={this.props.jwt}/>}
-        {this.props.view === "Galleries" && <Galleries />}
+        {this.props.view === "GalleryList" && <GalleryList />}
         {this.props.view === "Settings" && <Settings />}
+        {this.props.view === "Gallery" && <Gallery />}
       </div>
   )
   }
@@ -83,6 +85,8 @@ class PhotoDetailModal extends React.Component{
   }
 
   render(){
+    const galleryMode = this.props.jwt ? true : false
+
     return (
       <Modal
       {...this.props}
@@ -92,8 +96,18 @@ class PhotoDetailModal extends React.Component{
       centered
     >
       <Modal.Body>
-        <PhotoDetailSigner data={this.props.photo} />
-        <PhotoDetailData data={this.props.photo} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
+        {this.props.jwt &&
+          <div className="detail-photo">
+            <PhotoDetailSigner data={this.props.photo} />
+            <PhotoDetailData data={this.props.photo} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
+          </div>
+        }
+        {!this.props.jwt &&
+          <div>
+            <PhotoDetailImage url={this.props.photo.signed_url} />
+          </div>
+        }
+
       </Modal.Body>
       <Modal.Footer>
         <Button className="btn btn-secondary" onClick={this.props.onHide}>Close</Button>
@@ -483,6 +497,64 @@ class PhotoDetailImage extends React.Component{
   }
 }
 
+class Gallery extends React.Component{
+  constructor(props){
+    super(props);
+    this.getPhotoData = this.getPhotoData.bind(this);
+    this.updatePhotoData = this.updatePhotoData.bind(this);
+    this.state = {photos: [], fetching_data: false}
+  }
+
+  componentDidMount(){
+    this.getPhotoData();
+  }
+
+  getPhotoData(){
+    if(this.state.fetching_data){
+      console.log("Already fetching data, skiping data refresh.")
+      return;
+    }
+
+    this.setState({fetching_data: true});
+    const urlParams = new URLSearchParams(window.location.search);
+    const gallery_id = urlParams.get('gallery');
+    console.log("Gallery_ID: " + gallery_id)
+    const requestOptions = {
+      mode: 'cors',
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    };
+    var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/gallery/" + gallery_id);
+    fetch(url, requestOptions)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data)
+
+        var newPhotos = data["Items"]
+
+        this.setState({photos: newPhotos, fetching_data: false})
+      })
+      .catch(error => {
+        console.log(error);
+     });
+  }
+
+  updatePhotoData(photo_id, key, value){
+    console.log("PhotoUpdate from gallery")
+  }
+
+  render(){
+    console.debug("Rendering Gallery")
+    var results_truncated = false;
+
+    return (
+        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData}/>
+    )
+  }
+}
+
 class PhotoFlowData extends React.Component{
   constructor(props){
     super(props);
@@ -756,27 +828,33 @@ class Thumbnail extends React.Component{
     const thumbnail_bucket = thumbnail_arr[0];
     const thumbnail_key = this.props.data.thumbnail_key.slice(thumbnail_bucket.length + 1)
 
-    /*
-    Sign a URL for the thumbnail using the Role associated with our login so that we can
-    access the private bucket.
-    */
-    const clientParams = {
-      region: process.env.REACT_APP_AWS_REGION,
-      credentials: AWS.config.credentials
-    }
-    const getObjectParams = {
-      Bucket: thumbnail_bucket,
-      Key: thumbnail_key
-    }
-    const client = new S3Client(clientParams);
-    const command = new GetObjectCommand(getObjectParams);
-    getSignedUrl(client, command, { expiresIn: 3600 })
-    .then((url) => {
+    var url = "";
+    if (this.props.data.signed_thumbnail_url){
+      url = this.props.data.signed_thumbnail_url
       this.setState({url: url});
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+    } else {
+      /*
+      Sign a URL for the thumbnail using the Role associated with our login so that we can
+      access the private bucket.
+      */
+      const clientParams = {
+        region: process.env.REACT_APP_AWS_REGION,
+        credentials: AWS.config.credentials
+      }
+      const getObjectParams = {
+        Bucket: thumbnail_bucket,
+        Key: thumbnail_key
+      }
+      const client = new S3Client(clientParams);
+      const command = new GetObjectCommand(getObjectParams);
+      getSignedUrl(client, command, { expiresIn: 3600 })
+      .then((url) => {
+        this.setState({url: url});
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    }
   }
 
   render(){
@@ -1035,7 +1113,7 @@ class TagsFilterControl extends React.Component{
   }
 }
 
-class Galleries extends React.Component {
+class GalleryList extends React.Component {
   constructor(props){
     super(props);
   }
@@ -1145,7 +1223,13 @@ class App extends React.Component {
   render() {
     const view = this.state.view;
     console.log(this.state)
-    const activeSession = this.state.accessToken ? true : false
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const gallery_id = urlParams.get('gallery');
+    const galleryMode = gallery_id ? true : false
+    const activeSession = (this.state.accessToken ? true : false) && !galleryMode
+
+    console.log("GalleryMode: " + galleryMode.toString() + ", ActiveSession: " + activeSession.toString())
     var jwt = ""
     if (this.state.accessToken){
       jwt = this.state.accessToken.jwtToken
@@ -1155,10 +1239,15 @@ class App extends React.Component {
         <div>
           <button type="button" className="btn btn-secondary login" onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
           {activeSession &&
-          <div>
-            <Header navHandler={this.viewChangeHandler} />
-            <Content view={view} jwt={jwt} />
-          </div>
+            <div>
+              <Header navHandler={this.viewChangeHandler} />
+              <Content view={view} jwt={jwt} />
+            </div>
+          }
+          {galleryMode &&
+            <div>
+              <Content view="Gallery"/>
+            </div>
           }
           <div id="modal-root"></div>
 

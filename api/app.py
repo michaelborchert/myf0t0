@@ -12,10 +12,13 @@ import json
 import os
 
 app = Chalice(app_name='myf0t0-api')
-app.api.cors = True
+#app.api.cors = True
 cors_config = CORSConfig(
     allow_origin='*',
     allow_credentials=True)
+
+unauthenticated_cors_config = CORSConfig(
+    allow_origin='*')
 
 db_client = boto3.client('dynamodb')
 db = boto3.resource('dynamodb')
@@ -436,19 +439,39 @@ def delete_gallery():
     else:
         return {'message': 'gallery deleted'}
 
-@app.route("/gallery/{id}", methods=['GET'], cors=cors_config)
-def get_gallery(id):
+@app.route("/gallery/{gallery_id}", methods=['GET'], cors=unauthenticated_cors_config)
+def get_gallery(gallery_id):
     table = db.Table(os.environ['db_name'])
     response = table.query(
         IndexName="GSI1",
-        KeyConditionExpression=Key('GSI1PK').eq("gallery") & Key('GSI1SK').eq(id)
+        KeyConditionExpression=Key('GSI1PK').eq("gallery") & Key('GSI1SK').eq(gallery_id)
     )
     print(response)
 
     if "filters" in response["Items"][0].keys():
         filters = json.loads(response["Items"][0]["filters"])
         print(filters)
-        return(get_photos_from_filters(filters, 200))
+        response = get_photos_from_filters(filters, 200)
+        print(response)
+        #Gotsta sign the URL's server-side so they're accessible for unauthenticated users!
+        for photo in response["Items"]:
+            id = photo["GSI1SK"]
+            #print(id)
+            id_arr = id.split('/', 1)
+            #print(id_arr)
+            bucket = id_arr[0]
+            #print(bucket)
+            key = id_arr[1]
+            #print(key)
+            expiration = 3600
+            photo["signed_url"] = create_presigned_url(bucket, key, expiration)
+
+            thumbnail_id = photo["thumbnail_key"]
+            thumbnail_id_arr = thumbnail_id.split('/', 1)
+            thumbnail_bucket = thumbnail_id_arr[0]
+            thumbnail_key = thumbnail_id_arr[1]
+            photo["signed_thumbnail_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, expiration)
+        return(response)
     else:
         return {'message': 'Something went wrong - no filters found.'}
 

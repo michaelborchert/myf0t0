@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ -n $1 ]]; then
-  npx browserslist@latest --update-db
+  npx browserslist@latest --update-db -y
 
   npm run build
 
