@@ -947,16 +947,16 @@ class PhotoFilterPane extends React.Component {
   }
 
   saveFilterValuesToStorage(){
-    if(this.state.current_filter_values.start_date){
+    if(this.state.current_filter_values.start_date != null){
       localStorage.setItem('start_date_filter', this.state.current_filter_values.start_date)
     }
-    if(this.state.current_filter_values.end_date){
+    if(this.state.current_filter_values.end_date != null){
       localStorage.setItem('end_date_filter', this.state.current_filter_values.end_date)
     }
-    if(this.state.current_filter_values.rating){
+    if(this.state.current_filter_values.rating != null){
       localStorage.setItem('rating_filter', this.state.current_filter_values.rating)
     }
-    if(this.state.current_filter_values.tags){
+    if(this.state.current_filter_values.tags != null){
       localStorage.setItem('tags_filter', this.state.current_filter_values.tags)
     }
   }

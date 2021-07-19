@@ -1,5 +1,4 @@
 Next Steps:
-  * Empty filter values (maybe only 'tags'?) don't get persisted to localStorage on "Submit"
   * Create/Delete gallery
   * Styling improvements
   ? Next/Previous navigation
