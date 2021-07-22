@@ -70,8 +70,8 @@ class Content extends React.Component {
     console.log(this.props);
     return (
       <div className="content">
-        {this.props.view === "Photos" && <PhotoFilterPane jwt={this.props.jwt}/>}
-        {this.props.view === "GalleryList" && <GalleryList />}
+        {this.props.view === "Photos" && <PhotoFilterPane jwt={this.props.jwt} navHandler={this.props.navHandler}/>}
+        {this.props.view === "Galleries" && <GalleryList jwt={this.props.jwt} />}
         {this.props.view === "Settings" && <Settings />}
         {this.props.view === "Gallery" && <Gallery />}
       </div>
@@ -90,7 +90,7 @@ class PhotoDetailModal extends React.Component{
     return (
       <Modal
       {...this.props}
-      //size="lg"
+      size="s"
       aria-labelledby="contained-modal-title-vcenter"
       dialogClassName="photo-modal"
       centered
@@ -786,7 +786,6 @@ class PhotoFlow extends React.Component {
             jwt={this.props.jwt}
             updateHandler={this.handleMetadataUpdate}
           />
-
       </div>
     )
   }
@@ -892,9 +891,13 @@ class PhotoFilterPane extends React.Component {
     this.cancelFilters = this.cancelFilters.bind(this)
     this.loadFilterValuesFromStorage = this.loadFilterValuesFromStorage.bind(this);
     this.saveFilterValuesToStorage = this.saveFilterValuesToStorage.bind(this);
+    this.saveGalleryClickHandler = this.saveGalleryClickHandler.bind(this);
+    this.saveGalleryFunction = this.saveGalleryFunction.bind(this);
+    this.closeGallerySaveModal = this.closeGallerySaveModal.bind(this);
 
     this.state = {
       "pane_open": false,
+      "gallerySaveModalVisible": false
     }
   }
 
@@ -993,6 +996,44 @@ class PhotoFilterPane extends React.Component {
     this.togglePane();
   }
 
+  saveGalleryClickHandler(){
+    this.setState({'gallerySaveModalVisible': true})
+  }
+
+  saveGalleryFunction(name){
+    if (this.props.jwt){
+      var filter_params = {}
+      for (const [key, value] of Object.entries(this.state.current_filter_values)){
+        if (value){
+          filter_params[key] = value;
+        }
+      }
+
+      const requestOptions = {
+        mode: 'cors',
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      console.debug(this.props);
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/gallery");
+      const params = {"name": name, "filters": JSON.stringify(filter_params)}
+      url.search = new URLSearchParams(params).toString();
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          this.props.navHandler("Galleries")
+        })
+    }
+  }
+
+  closeGallerySaveModal(){
+    this.setState({'gallerySaveModalVisible': false})
+  }
+
   render(){
     console.debug("Rendering FilterPane")
     console.debug(this.state.filter_values)
@@ -1020,12 +1061,66 @@ class PhotoFilterPane extends React.Component {
               <tr>
                 <td> <button type="button" className="btn btn-secondary" onClick={this.submitFilters}>Submit</button> </td>
                 <td> <button type="button" className="btn btn-secondary" onClick={this.cancelFilters}>Cancel</button></td>
+                <td> <button type="button" className="btn btn-secondary" onClick={this.saveGalleryClickHandler}>Create Gallery</button></td>
               </tr>
             </tbody></table>
           </div>
         }
         <PhotoFlowData jwt={this.props.jwt} filters={filter_values}/>
+        <GallerySaveModal
+          show={this.state.gallerySaveModalVisible}
+          cancelFunction={this.closeGallerySaveModal}
+          saveFunction={this.saveGalleryFunction}
+        />
       </div>
+    )
+  }
+}
+
+class GallerySaveModal extends React.Component{
+  constructor(props){
+    super(props);
+    this.handleChange = this.handleChange.bind(this)
+    this.handleSaveClick = this.handleSaveClick.bind(this)
+    this.handleCancelClick = this.handleCancelClick.bind(this)
+    this.state = {'value': ''}
+  }
+
+  handleChange(e){
+    this.setState({'value': e.target.value})
+  }
+
+  handleSaveClick(e){
+    const value = this.state.value;
+    this.setState({'value':''})
+    this.props.saveFunction(value)
+
+  }
+
+  handleCancelClick(e){
+    this.setState({'value': ''})
+    this.props.cancelFunction()
+  }
+
+  render(){
+    return(
+      <Modal
+        {...this.props}
+        //size="lg"
+        aria-labelledby="contained-modal-title-vcenter"
+        dialogClassName="gallery-save-modal"
+        centered
+      >
+      <Modal.Body>
+        <div className="gallery-save-modal">
+          Enter a name for the new Gallery
+          <input value={this.state.value} onChange={this.handleChange}/>
+          <button onClick={this.handleSaveClick}>Save</button>
+          <button onClick={this.handleCancelClick}>Cancel</button>
+        </div>
+      </Modal.Body>
+    </Modal>
+
     )
   }
 }
@@ -1119,7 +1214,133 @@ class GalleryList extends React.Component {
   }
 
   render() {
-    return <h1>Galleries!</h1>
+    return (
+      <GalleryListingData jwt={this.props.jwt} />
+    )
+  }
+}
+
+class GalleryListingData extends React.Component{
+  constructor(props){
+    super(props);
+    this.getGalleryList = this.getGalleryList.bind(this)
+    this.deleteGallery = this.deleteGallery.bind(this)
+    this.state = {fetching_data: false, galleryItems: []}
+  }
+
+  deleteGallery(e){
+    console.log(e)
+    const gallery_name = e.target.value
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/gallery");
+      const params = {"name": gallery_name}
+      url.search = new URLSearchParams(params).toString();
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+
+          //For now, assume that if we've gotten this far the delete was successful.
+          var newGalleryItems = [...this.state.galleryItems]
+          var i;
+          for (i=0; i<newGalleryItems.length; i++){
+            if (newGalleryItems[i]["SK"] === gallery_name){
+              newGalleryItems.splice(i, 1)
+              this.setState({galleryItems: newGalleryItems})
+              break;
+            }
+          }
+        }
+      )
+    }
+  }
+
+  getGalleryList(){
+    this.setState({fetching_data: true});
+    /*
+    Make sure the async process to fetch access tokens has completed before continuing.
+    */
+    if (this.props.jwt){
+      const requestOptions = {
+        mode: 'cors',
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: this.props.jwt
+        }
+      };
+      var url = new URL(process.env.REACT_APP_API_ENDPOINT + "/gallerylist");
+      fetch(url, requestOptions)
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+
+          const newGalleryItems = data["Items"]
+
+          this.setState({galleryItems: newGalleryItems, fetching_data: false})
+        }
+      )
+    }
+  }
+
+  componentDidMount(){
+    console.log("In GalleryListingData")
+    this.getGalleryList()
+  }
+
+  render(){
+    return(
+      <GalleryListing data = {this.state.galleryItems} deleteFunction={this.deleteGallery}/>
+    )
+  }
+}
+
+class GalleryListing extends React.Component{
+  constructor(props){
+    super(props)
+  }
+
+  render(){
+    var listItems = "No Galleries."
+
+    if(this.props.data){
+      listItems = this.props.data.map((item) => (
+          <li key={item.SK}><GalleryItem item={item} deleteFunction={this.props.deleteFunction}/></li>
+      ));
+    }
+
+
+    return(
+      <div className="gallery-listing">
+      <ul>
+        {listItems}
+      </ul>
+      </div>
+    )
+  }
+}
+
+class GalleryItem extends React.Component{
+  constructor(props){
+    super(props)
+  }
+
+  render(){
+    const name = this.props.item.SK
+    const url = window.location.protocol + "//" + window.location.href.split("/")[2] + "/?gallery=" + this.props.item.GSI1SK
+    return (
+      <div>
+      {name} - {url} - <button value={name} onClick={this.props.deleteFunction}>delete</button>
+      </div>
+    )
   }
 }
 
@@ -1202,10 +1423,14 @@ class App extends React.Component {
       console.log(this.auth);
       if (this.sessionIsExpired(this.auth.signInUserSession.accessToken)){
         console.debug("Panic!")
-        this.auth.signOut();
+        //this.auth.signOut();
       }
       this.auth.getSession();
     }
+  }
+
+  setViewFunction(view){
+    this.setState({'view': view})
   }
 
   viewChangeHandler=(view)=>{
@@ -1241,7 +1466,7 @@ class App extends React.Component {
           {activeSession &&
             <div>
               <Header navHandler={this.viewChangeHandler} />
-              <Content view={view} jwt={jwt} />
+              <Content view={view} jwt={jwt} navHandler={this.viewChangeHandler}/>
             </div>
           }
           {galleryMode &&

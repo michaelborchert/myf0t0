@@ -405,6 +405,7 @@ def put_gallery():
     #generate unique URL
     characters = string.ascii_lowercase + string.digits
     gallery_id = ''.join(random.choice(characters) for i in range(24))
+    timestamp = datetime.datetime.now()
 
     table = db.Table(os.environ['db_name'])
     response  = table.put_item(
@@ -413,11 +414,12 @@ def put_gallery():
             'SK': params["name"],
             'GSI1PK': "gallery",
             'GSI1SK': gallery_id,
-            'filters': params["filters"]
+            'filters': params["filters"],
+            'timestamp': str(timestamp)
         }
     )
 
-    return {'message': 'gallery saved'}
+    return {'message': 'gallery saved', 'gallery_id': gallery_id}
 
 @app.route("/gallery", methods=['DELETE'], cors=cors_config)
 def delete_gallery():

@@ -130,3 +130,11 @@ body {
   font-weight: bold;
   font-variant-caps: all-petite-caps;
 }
+
+.gallery-listing {
+  float: left;
+}
+
+.gallery-save-modal{
+  height: 98%;
+}

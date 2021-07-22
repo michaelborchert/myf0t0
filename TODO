@@ -1,6 +1,15 @@
 Next Steps:
-  * Create/Delete gallery
+  * Gallery page improvements
+    * Display Gallery Name on page
+  * Galleries page improvements
+    * Display filter values on gallery page
+    * Sort list by timestamp (most recently-created first)
+    * Copy URL to clipboard button, trash can icon
   * Styling improvements
+    * photo group headings
+    * indicate tab selection
+    * gallery list items
+    * remove/change photo flow "Photos!"
   ? Next/Previous navigation
   ? Tag auto-suggest
   * Demo!
