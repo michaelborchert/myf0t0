@@ -452,6 +452,7 @@ def get_gallery(gallery_id):
 
     if "filters" in response["Items"][0].keys():
         filters = json.loads(response["Items"][0]["filters"])
+        name = response["Items"][0]["SK"]
         print(filters)
         response = get_photos_from_filters(filters, 200)
         print(response)
@@ -473,6 +474,7 @@ def get_gallery(gallery_id):
             thumbnail_bucket = thumbnail_id_arr[0]
             thumbnail_key = thumbnail_id_arr[1]
             photo["signed_thumbnail_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, expiration)
+        response["GalleryName"] = name
         return(response)
     else:
         return {'message': 'Something went wrong - no filters found.'}

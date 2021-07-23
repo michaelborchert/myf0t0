@@ -22,22 +22,26 @@ body {
 
 .modal-dialog,
 .modal-content {
+  max-height: 98%;
+  background-color: #18171f;
+}
+
+.photo-modal {
   width: 95%;
   max-width: none !important;
   height: 98%;
   max-height: 98%;
   background-color: #18171f;
-}
+  }
 
-.modal-body {
-  /* 100% = dialog height, 120px = header + footer */
-    max-height: calc(100% - 60px);
-    overflow-y: scroll;
-    background-color: #18171f;
+
+#photo-modal-body {
+  max-height: calc(100% - 60px);
+  overflow-y: scroll;
+  background-color: #18171f;
 }
 
 .focus-photo {
-  /*width: 90%;*/
   height: 100%;
   display: inline
 }
@@ -137,4 +141,29 @@ body {
 
 .gallery-save-modal{
   height: 98%;
+}
+
+.icon-button {
+  width: 18px;
+  height: 18px;
+}
+
+.link-copy-button {
+  margin-left: -5px;
+  margin-bottom: -10px;
+}
+
+.gallery-item {
+  display: inline;
+}
+
+.gallery-item-chunk {
+  margin: 5px;
+  padding: 5px;
+  float: left;
+}
+
+.small-text {
+  font-size: 12px;
+  font-style: italic;
 }

@@ -1,10 +1,4 @@
 Next Steps:
-  * Gallery page improvements
-    * Display Gallery Name on page
-  * Galleries page improvements
-    * Display filter values on gallery page
-    * Sort list by timestamp (most recently-created first)
-    * Copy URL to clipboard button, trash can icon
   * Styling improvements
     * photo group headings
     * indicate tab selection
@@ -66,6 +60,7 @@ Front-end:
 - Search results
 
 Backlog:
+- Attribution: Delete by Landan Lloyd from the Noun Project
 - Hover tagging - select from the 5 most recently applied tags
 - Download link for raw file
 - Group operations

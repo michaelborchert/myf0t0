@@ -90,12 +90,11 @@ class PhotoDetailModal extends React.Component{
     return (
       <Modal
       {...this.props}
-      size="s"
-      aria-labelledby="contained-modal-title-vcenter"
+      //size="lg"
       dialogClassName="photo-modal"
       centered
     >
-      <Modal.Body>
+      <Modal.Body id="photo-modal-body">
         {this.props.jwt &&
           <div className="detail-photo">
             <PhotoDetailSigner data={this.props.photo} />
@@ -502,7 +501,7 @@ class Gallery extends React.Component{
     super(props);
     this.getPhotoData = this.getPhotoData.bind(this);
     this.updatePhotoData = this.updatePhotoData.bind(this);
-    this.state = {photos: [], fetching_data: false}
+    this.state = {photos: [], title: "", fetching_data: false}
   }
 
   componentDidMount(){
@@ -534,7 +533,7 @@ class Gallery extends React.Component{
 
         var newPhotos = data["Items"]
 
-        this.setState({photos: newPhotos, fetching_data: false})
+        this.setState({photos: newPhotos, title: data["GalleryName"], fetching_data: false})
       })
       .catch(error => {
         console.log(error);
@@ -550,7 +549,7 @@ class Gallery extends React.Component{
     var results_truncated = false;
 
     return (
-        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData}/>
+        <PhotoFlow title={this.state.title} photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData}/>
     )
   }
 }
@@ -687,7 +686,7 @@ class PhotoFlowData extends React.Component{
     }
 
     return (
-        <PhotoFlow photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData} jwt={this.props.jwt}/>
+        <PhotoFlow title={this.props.title} photos={this.state.photos} results_truncated={results_truncated} get_photos={this.getPhotoData} update_metadata={this.updatePhotoData} jwt={this.props.jwt}/>
     )
   }
 }
@@ -771,10 +770,15 @@ class PhotoFlow extends React.Component {
       ));
     }
 
+    var title = ""
+    if(this.props.title){
+      title = this.props.title;
+    }
+
     return (
        <div id='photoFlowDiv'>
        <br/>
-       <span className="section-title">Photos!</span>
+       <span className="section-title">{title}</span>
        <ul>
           {listItems}
         </ul>
@@ -1066,7 +1070,7 @@ class PhotoFilterPane extends React.Component {
             </tbody></table>
           </div>
         }
-        <PhotoFlowData jwt={this.props.jwt} filters={filter_values}/>
+        <PhotoFlowData jwt={this.props.jwt} filters={filter_values} title="Photos"/>
         <GallerySaveModal
           show={this.state.gallerySaveModalVisible}
           cancelFunction={this.closeGallerySaveModal}
@@ -1104,21 +1108,26 @@ class GallerySaveModal extends React.Component{
 
   render(){
     return(
-      <Modal
-        {...this.props}
-        //size="lg"
-        aria-labelledby="contained-modal-title-vcenter"
-        dialogClassName="gallery-save-modal"
-        centered
-      >
+      <Modal show={this.props.show} onHide={this.handleCancelClick} size="sm">
+        <Modal.Header closeButton>
+          <Modal.Title> Enter Name </Modal.Title>
+        </Modal.Header>
+
       <Modal.Body>
-        <div className="gallery-save-modal">
-          Enter a name for the new Gallery
+        <div>
+          Enter a name for the new Gallery <br/>
           <input value={this.state.value} onChange={this.handleChange}/>
-          <button onClick={this.handleSaveClick}>Save</button>
-          <button onClick={this.handleCancelClick}>Cancel</button>
         </div>
       </Modal.Body>
+
+      <Modal.Footer>
+        <Button variant="secondary" onClick={this.handleCancelClick}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={this.handleSaveClick}>
+          Save
+        </Button>
+      </Modal.Footer>
     </Modal>
 
     )
@@ -1312,7 +1321,15 @@ class GalleryListing extends React.Component{
     var listItems = "No Galleries."
 
     if(this.props.data){
-      listItems = this.props.data.map((item) => (
+      //Sort list by timestamp (descending)
+      var localData = [...this.props.data]
+      localData.sort(function(a,b) {
+        var keyA = new Date(a.timestamp),
+          keyB = new Date(b.timestamp);
+        return keyB-keyA;
+      })
+
+      listItems = localData.map((item) => (
           <li key={item.SK}><GalleryItem item={item} deleteFunction={this.props.deleteFunction}/></li>
       ));
     }
@@ -1331,14 +1348,42 @@ class GalleryListing extends React.Component{
 class GalleryItem extends React.Component{
   constructor(props){
     super(props)
+    this.copyLink = this.copyLink.bind(this);
+    this.getFilterDescription = this.getFilterDescription.bind(this);
+    const url = window.location.protocol + "//" + window.location.href.split("/")[2] + "/?gallery=" + this.props.item.GSI1SK
+    this.state = {'name': this.props.item.SK, 'url': url}
+  }
+
+  copyLink(){
+    navigator.clipboard.writeText(this.state.url)
+  }
+
+  getFilterDescription(filters){
+    var output = ""
+    for (const [key, value] of Object.entries(JSON.parse(filters))) {
+      output = output + key + "=" + value + ", ";
+    }
+
+    output = output.slice(0, -2);
+
+    return(output);
   }
 
   render(){
-    const name = this.props.item.SK
-    const url = window.location.protocol + "//" + window.location.href.split("/")[2] + "/?gallery=" + this.props.item.GSI1SK
+    const filterDescription = this.getFilterDescription(this.props.item.filters);
+
     return (
-      <div>
-      {name} - {url} - <button value={name} onClick={this.props.deleteFunction}>delete</button>
+      <div className="gallery-item">
+        <div className="gallery-item-chunk">{this.state.name}</div>
+        <div className="gallery-item-chunk">
+          <span>{this.state.url}</span>
+          <input className="icon-button link-copy-button" type="image" src="/link-icon.png" onClick={this.copyLink}/> <br/>
+          <span className="small-text"> {filterDescription} </span>
+        </div>
+        <div className="gallery-item-chunk">
+          <input className="icon-button" type="image" src="/delete-icon.png" value={this.state.name} onClick={this.props.deleteFunction}/> <br/>
+        </div>
+
       </div>
     )
   }
