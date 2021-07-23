@@ -9,7 +9,19 @@ body {
     float: left
 }
 .content {
+  display: block;
+  float: left;
   width: 100%
+}
+
+.nav-button {
+  font-size: 30px;
+  margin: 10px;
+  padding: 10px;
+}
+
+.selected {
+  border: 1px solid white;
 }
 
 .ul_thumbnail li{
@@ -118,16 +130,17 @@ body {
 }
 
 .filter-pane{
-  display: inline;
+  display: block;
   padding-left: 20px;
+  padding-top: 20px;
 }
 
 .filter-table{
-  margin-left: 20px;
+  margin-left: 10px;
   margin-bottom: 15px;
+  margin-top: 10px;
   padding: 10px;
   border: 1px solid #ffffff;
-  width: auto;
 }
 .section-title {
   font-size: 50px;
@@ -137,6 +150,8 @@ body {
 
 .gallery-listing {
   float: left;
+  padding-top: 15px;
+  padding-left: 10px;
 }
 
 .gallery-save-modal{
@@ -166,4 +181,21 @@ body {
 .small-text {
   font-size: 12px;
   font-style: italic;
+}
+
+.photo-group {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group-divider {
+  margin: 0;
+  padding-top: 10px;
+}
+
+.gallery-list{
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }

@@ -1,9 +1,4 @@
 Next Steps:
-  * Styling improvements
-    * photo group headings
-    * indicate tab selection
-    * gallery list items
-    * remove/change photo flow "Photos!"
   ? Next/Previous navigation
   ? Tag auto-suggest
   * Demo!
@@ -60,7 +55,9 @@ Front-end:
 - Search results
 
 Backlog:
-- Attribution: Delete by Landan Lloyd from the Noun Project
+- Preserve last-clicked view
+- Toast pop-up confirmation when copying Gallery link to clipboard
+- Attribution: Delete icon by Landan Lloyd from the Noun Project
 - Hover tagging - select from the 5 most recently applied tags
 - Download link for raw file
 - Group operations

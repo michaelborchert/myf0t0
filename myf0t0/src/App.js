@@ -36,9 +36,9 @@ class Header extends React.Component {
 
   render() {
     return (<div className="header">
-      <NavButton view="Photos" navClickHandler={this.handleNavClick} />
-      <NavButton view="Galleries" navClickHandler={this.handleNavClick} />
-      <NavButton view="Settings" navClickHandler={this.handleNavClick} />
+      <NavButton view="Photos" navClickHandler={this.handleNavClick} currentView={this.props.view}/>
+      <NavButton view="Galleries" navClickHandler={this.handleNavClick} currentView={this.props.view}/>
+      <NavButton view="Settings" navClickHandler={this.handleNavClick} currentView={this.props.view}/>
     </div>);
   }
 }
@@ -55,8 +55,12 @@ class NavButton extends React.Component {
   }
 
   render() {
+    var myClass = "nav-button"
+    if (this.props.view === this.props.currentView){
+      myClass = "nav-button selected"
+    }
     return (
-      <span onClick={this.handleNav}> {this.props.view} </span>
+      <span className={myClass} onClick={this.handleNav}> {this.props.view} </span>
     )
   }
 }
@@ -766,7 +770,7 @@ class PhotoFlow extends React.Component {
       };
 
       listItems = photo_groups.map((photo_data) => (
-          <li key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
+          <li className="photo-group" key={photo_data.header}><PhotoGroup header={photo_data.header} data={photo_data.photos} photoFocusHandler={this.handlePhotoFocus}/></li>
       ));
     }
 
@@ -778,8 +782,10 @@ class PhotoFlow extends React.Component {
     return (
        <div id='photoFlowDiv'>
        <br/>
-       <span className="section-title">{title}</span>
-       <ul>
+       {title &&
+         <span className="section-title">{title}</span>
+       }
+       <ul className="photo-group">
           {listItems}
         </ul>
 
@@ -805,7 +811,7 @@ class PhotoGroup extends React.Component{
     );
     return(
       <div>
-        <span>{this.props.header}</span>
+        <h4 className="group-divider">{this.props.header}</h4>
         <ul className="ul_thumbnail">
           {listItems}
         </ul>
@@ -1070,7 +1076,7 @@ class PhotoFilterPane extends React.Component {
             </tbody></table>
           </div>
         }
-        <PhotoFlowData jwt={this.props.jwt} filters={filter_values} title="Photos"/>
+        <PhotoFlowData jwt={this.props.jwt} filters={filter_values} title=""/>
         <GallerySaveModal
           show={this.state.gallerySaveModalVisible}
           cancelFunction={this.closeGallerySaveModal}
@@ -1337,9 +1343,9 @@ class GalleryListing extends React.Component{
 
     return(
       <div className="gallery-listing">
-      <ul>
-        {listItems}
-      </ul>
+        <ul className="gallery-list">
+          {listItems}
+        </ul>
       </div>
     )
   }
@@ -1510,7 +1516,7 @@ class App extends React.Component {
           <button type="button" className="btn btn-secondary login" onClick={this.buttonHandler}>{activeSession ? "Logout" : "Login"}</button>
           {activeSession &&
             <div>
-              <Header navHandler={this.viewChangeHandler} />
+              <Header view={view} navHandler={this.viewChangeHandler} />
               <Content view={view} jwt={jwt} navHandler={this.viewChangeHandler}/>
             </div>
           }
