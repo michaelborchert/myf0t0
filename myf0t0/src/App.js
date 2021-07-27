@@ -749,10 +749,12 @@ class PhotoFlow extends React.Component {
     }
   }
 
-  handlePhotoFocus(photo, fetch_more=false){
+  handlePhotoFocus(photo){
     this.setState({focusPhoto: photo, focusModalVisible: true});
 
-    if(fetch_more && this.props.results_truncated){
+    //If there is no previous photo set but there *are* more results, fetch the next batch.
+    //This happens if we hit the end of the current batch using the navigation buttons in the photo detail modal.
+    if(!photo.previous && this.props.results_truncated){
       this.props.get_photos();
     }
   }
