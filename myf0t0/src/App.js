@@ -88,8 +88,18 @@ class PhotoDetailModal extends React.Component{
     super(props);
   }
 
+  handlePrevClick = () => {
+    this.props.photoFocusHandler(this.props.photo.previous)
+  }
+
+  handleNextClick = () => {
+    this.props.photoFocusHandler(this.props.photo.next)
+  }
+
   render(){
     const galleryMode = this.props.jwt ? true : false
+    const next = this.props.photo.next ? true : false;
+    const previous = this.props.photo.previous ? true : false;
 
     return (
       <Modal
@@ -98,6 +108,15 @@ class PhotoDetailModal extends React.Component{
       dialogClassName="photo-modal"
       centered
     >
+      <Modal.Header>
+        {next &&
+          <input type="button" className="next-photo" onClick={this.handleNextClick} value="Next"/>
+        }
+        {previous &&
+          <input type="button" className="prev-photo" onClick={this.handlePrevClick} value="Prev"/>
+        }
+
+      </Modal.Header>
       <Modal.Body id="photo-modal-body">
         {this.props.jwt &&
           <div className="detail-photo">
@@ -449,6 +468,16 @@ class PhotoDetailSigner extends React.Component{
   }
 
   componentDidMount () {
+    this.generateSignedUrl();
+  }
+
+  componentDidUpdate(prevProps){
+    if (prevProps.data.GSI1SK != this.props.data.GSI1SK){
+      this.generateSignedUrl();
+    }
+  }
+
+  generateSignedUrl = () => {
     //Extract the bucket and object key from the response
     const image_key_arr = this.props.data.GSI1SK.split("/", 1);
     const image_bucket = image_key_arr[0];
@@ -720,8 +749,12 @@ class PhotoFlow extends React.Component {
     }
   }
 
-  handlePhotoFocus(photo){
+  handlePhotoFocus(photo, fetch_more=false){
     this.setState({focusPhoto: photo, focusModalVisible: true});
+
+    if(fetch_more && this.props.results_truncated){
+      this.props.get_photos();
+    }
   }
 
   closePhotoFocus(){
@@ -760,6 +793,15 @@ class PhotoFlow extends React.Component {
     if(this.props.photos){
       for(var i=0; i<this.props.photos.length; i++){
         var photo = this.props.photos[i];
+
+        if (i>0){
+          photo.next = this.props.photos[i-1]
+        }
+
+        if (i < this.props.photos.length - 1){
+          photo.previous = this.props.photos[i+1]
+        }
+
         //console.log(photo);
         if (curr_header !== photo.SK.split("T")[0]){
           curr_header = photo.SK.split("T")[0]
@@ -795,6 +837,7 @@ class PhotoFlow extends React.Component {
             photo={this.state.focusPhoto}
             jwt={this.props.jwt}
             updateHandler={this.handleMetadataUpdate}
+            photoFocusHandler={this.handlePhotoFocus}
           />
       </div>
     )
