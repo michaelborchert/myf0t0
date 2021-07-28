@@ -1,6 +1,7 @@
 Next Steps:
-  ? Next/Previous navigation
-  ? Tag auto-suggest
+  - Improve tag background/foreground colors
+  - Finish keyboard shortcuts
+  - Deployment/Update process
   * Demo!
     ? Medium-sized thumbnail for detail view - is this still needed with current speed?
 
@@ -55,9 +56,12 @@ Front-end:
 - Search results
 
 Backlog:
+
+- Scroll within filter frame - "freeze" top nav and filter controls on photoflow
 - Preserve last-clicked view
 - Toast pop-up confirmation when copying Gallery link to clipboard
 - Attribution: Delete icon by Landan Lloyd from the Noun Project
+- More sophisticated tag filters - ands & ors
 - Hover tagging - select from the 5 most recently applied tags
 - Download link for raw file
 - Group operations

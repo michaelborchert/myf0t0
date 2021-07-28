@@ -125,7 +125,7 @@ class PhotoDetailModal extends React.Component{
           </div>
         }
         {!this.props.jwt &&
-          <div>
+          <div className="detail-photo">
             <PhotoDetailImage url={this.props.photo.signed_url} />
           </div>
         }
@@ -227,6 +227,22 @@ class PhotoTagInput extends React.Component{
     this.handleChange = this.handleChange.bind(this);
   }
 
+  componentDidMount(){
+    document.addEventListener("keydown", this.tagShortcutHandler, false);
+  }
+  componentWillUnmount(){
+    document.removeEventListener("keydown", this.tagShortcutHandler, false);
+  }
+
+  tagShortcutHandler = (event) => {
+    if (event.keyCode == 84) {
+      if (document.activeElement != this.nameInput){
+        this.nameInput.focus()
+        event.preventDefault();
+      }
+    }
+  }
+
   addButtonHandler = () => {
     this.props.addTagFunction(this.state.tag_value)
     this.setState({"tag_value": ""})
@@ -236,11 +252,18 @@ class PhotoTagInput extends React.Component{
     this.setState({"tag_value": e.target.value})
   }
 
+  handleKeyUp = (e) => {
+    if (e.keyCode == 13){
+      this.props.addTagFunction(this.state.tag_value)
+      this.setState({"tag_value": ""})
+    }
+  }
+
   render(){
     const curr_value = this.state.tag_value;
     return(
       <div className="tag-input">
-        Add Tag: <input className="tag-input-box" value={curr_value} onChange={this.handleChange} />
+        Add Tag: <input id="tag-input" ref={(input) => { this.nameInput = input; }} className="tag-input-box" value={curr_value} onChange={this.handleChange} onKeyUp={this.handleKeyUp}/>
         { curr_value &&
           <button  type="button" className="btn btn-secondary tag-input-button" onClick={this.addButtonHandler}>ok</button>
         }
@@ -777,7 +800,9 @@ class PhotoFlow extends React.Component {
 
   trackScrolling = () => {
     const wrappedElement = document.getElementById('photoFlowDiv');
+    //console.debug("Scrolling")
     if (this.isBottom(wrappedElement)) {
+      //console.debug("BOTTOM!")
       console.log('photoFlow bottom reached');
       if(this.props.results_truncated){
         this.props.get_photos();
@@ -1427,7 +1452,7 @@ class GalleryItem extends React.Component{
       <div className="gallery-item">
         <div className="gallery-item-chunk">{this.state.name}</div>
         <div className="gallery-item-chunk">
-          <span>{this.state.url}</span>
+          <span><a href={this.state.url}>{this.state.url}</a></span>
           <input className="icon-button link-copy-button" type="image" src="/link-icon.png" onClick={this.copyLink}/> <br/>
           <span className="small-text"> {filterDescription} </span>
         </div>
