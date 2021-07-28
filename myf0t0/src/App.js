@@ -88,6 +88,22 @@ class PhotoDetailModal extends React.Component{
     super(props);
   }
 
+  componentDidMount(){
+    document.addEventListener("keydown", this.photoNavShortcutHandler, false);
+  }
+
+  componentWillUnmount(){
+    document.removeEventListener("keydown", this.photoNavShortcutHandler, false);
+  }
+
+  photoNavShortcutHandler = (e) => {
+    if (e.keyCode == 80 || e.keyCode == 39) {
+      this.props.photoFocusHandler(this.props.photo.previous)
+    } else if (e.keyCode == 78 || e.keyCode == 37) {
+      this.props.photoFocusHandler(this.props.photo.next)
+    }
+  }
+
   handlePrevClick = () => {
     this.props.photoFocusHandler(this.props.photo.previous)
   }
@@ -370,6 +386,20 @@ class PhotoRating extends React.Component{
   constructor(props){
     super(props);
     this.setRating = this.setRating.bind(this);
+  }
+
+  componentDidMount(){
+    document.addEventListener("keydown", this.ratingShortcutHandler, false);
+  }
+  componentWillUnmount(){
+    document.removeEventListener("keydown", this.ratingShortcutHandler, false);
+  }
+
+  ratingShortcutHandler = (e) =>{
+    if (e.keyCode >= 49 && e.keyCode <=53){
+      this.setRating(e.keyCode-48)
+      e.preventDefault();
+    }
   }
 
   handleRatingClick = (rating) => {
