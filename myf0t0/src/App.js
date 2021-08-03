@@ -271,6 +271,7 @@ class PhotoTagInput extends React.Component{
   addButtonHandler = () => {
     this.props.addTagFunction(this.state.tag_value)
     this.setState({"tag_value": ""})
+    this.nameInput.blur()
   }
 
   handleChange = (e) => {
@@ -281,6 +282,7 @@ class PhotoTagInput extends React.Component{
     if (e.keyCode == 13){
       this.props.addTagFunction(this.state.tag_value)
       this.setState({"tag_value": ""})
+      this.nameInput.blur()
     }
   }
 
