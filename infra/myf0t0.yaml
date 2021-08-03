@@ -330,7 +330,7 @@ Resources:
       Description: "API Gateway for MyF0t0"
       EndpointConfiguration:
         Types:
-          - Regional
+          - REGIONAL
   ApiAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
