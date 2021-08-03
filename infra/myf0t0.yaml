@@ -787,6 +787,15 @@ Resources:
               - AppCloudFrontDistribution
               - DomainName
             - "/"
+      LogoutURLs:
+        - http://localhost:3000/
+        - !Join
+          - ''
+          - - "https://"
+            - !GetAtt
+              - AppCloudFrontDistribution
+              - DomainName
+            - "/"
       ClientName: "MyF0t0"
       DefaultRedirectURI: "http://localhost:3000/"
       ExplicitAuthFlows:
