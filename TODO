@@ -1,6 +1,6 @@
 Next Steps:
-  - Finish keyboard shortcuts
-  - Improve tag background/foreground colors
+  - BUG: (chrome) detail view photos not scaling correctly
+  - BUG: typing a number (or presumably N or P) while entering a tag causes it to set rating and/or navigate.  Need to disable other keyboard shortcuts when tag entry has focus
   - Update readme
   - Deployment/Update process
   * Demo!
@@ -57,7 +57,7 @@ Front-end:
 - Search results
 
 Backlog:
-
+- Capital letters in stack name cause UserPoolDomain to fail
 - Scroll within filter frame - "freeze" top nav and filter controls on photoflow
 - Preserve last-clicked view
 - Toast pop-up confirmation when copying Gallery link to clipboard

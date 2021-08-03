@@ -459,13 +459,13 @@ def get_gallery(gallery_id):
         #Gotsta sign the URL's server-side so they're accessible for unauthenticated users!
         for photo in response["Items"]:
             id = photo["GSI1SK"]
-            #print(id)
+            print(id)
             id_arr = id.split('/', 1)
-            #print(id_arr)
+            print(id_arr)
             bucket = id_arr[0]
-            #print(bucket)
+            print(bucket)
             key = id_arr[1]
-            #print(key)
+            print(key)
             expiration = 3600
             photo["signed_url"] = create_presigned_url(bucket, key, expiration)
 
