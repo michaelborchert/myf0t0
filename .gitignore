@@ -23,7 +23,7 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
+*share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -142,6 +142,6 @@ cython_debug/
 
 /node_modules
 
-.eslintcache
+*.eslintcache
 
 package-lock.json
