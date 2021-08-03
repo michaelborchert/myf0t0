@@ -868,7 +868,9 @@ Resources:
           Value: True
   AdminUserGroupAttachment:
     Type: AWS::Cognito::UserPoolUserToGroupAttachment
-    DependsOn: AdminUser
+    DependsOn:
+      - AdminUser
+      - AdminGroup
     Properties:
       GroupName: admin
       Username: !Ref AdminEmail
