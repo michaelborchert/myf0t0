@@ -250,7 +250,7 @@ Resources:
           photo_bucket: !Ref PhotoBucket
       Handler: photo-processor.handler
       Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.6
+      Runtime: python3.8
       Timeout: 30
   ProcessingFunctionPermission:
     Type: AWS::Lambda::Permission

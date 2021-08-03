@@ -1,5 +1,4 @@
 Next Steps:
-  - BUG: (chrome) detail view photos not scaling correctly
   - BUG: typing a number (or presumably N or P) while entering a tag causes it to set rating and/or navigate.  Need to disable other keyboard shortcuts when tag entry has focus
   - Update readme
   - Deployment/Update process

@@ -1,4 +1,4 @@
-#!/home/michael/code/myf0t0/api/bin/python3
+#!/home/michael/Documents/code/myf0t0/api/bin/python3
 
 import sys
 import json

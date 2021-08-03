@@ -86,6 +86,8 @@ class Content extends React.Component {
 class PhotoDetailModal extends React.Component{
   constructor(props){
     super(props);
+
+    this.state = {"tagEditing": false }
   }
 
   componentDidMount(){
@@ -97,11 +99,14 @@ class PhotoDetailModal extends React.Component{
   }
 
   photoNavShortcutHandler = (e) => {
-    if (e.keyCode == 80 || e.keyCode == 39) {
-      this.props.photoFocusHandler(this.props.photo.previous)
-    } else if (e.keyCode == 78 || e.keyCode == 37) {
-      this.props.photoFocusHandler(this.props.photo.next)
+    if (!this.state.tagEditing){
+      if (e.keyCode == 80 || e.keyCode == 39) {
+        this.props.photoFocusHandler(this.props.photo.previous)
+      } else if (e.keyCode == 78 || e.keyCode == 37) {
+        this.props.photoFocusHandler(this.props.photo.next)
+      }
     }
+    
   }
 
   handlePrevClick = () => {
@@ -110,6 +115,10 @@ class PhotoDetailModal extends React.Component{
 
   handleNextClick = () => {
     this.props.photoFocusHandler(this.props.photo.next)
+  }
+
+  setTagEditing = (editing) => {
+    this.setState({"tagEditing": editing})
   }
 
   render(){
@@ -137,7 +146,7 @@ class PhotoDetailModal extends React.Component{
         {this.props.jwt &&
           <div className="detail-photo">
             <PhotoDetailSigner data={this.props.photo} />
-            <PhotoDetailData data={this.props.photo} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
+            <PhotoDetailData data={this.props.photo} jwt={this.props.jwt} updateHandler={this.props.updateHandler} tagEditing={this.state.tagEditing} setTagEditing={this.setTagEditing}/>
           </div>
         }
         {!this.props.jwt &&
@@ -174,8 +183,8 @@ class PhotoDetailData extends React.Component{
     return(
       <div className="photo-data">
         { photoName && <h1> {photoName}</h1>}
-        <PhotoRating data={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler}/>
-        <PhotoTagPane photo={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler} />
+        <PhotoRating data={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler} tagEditing={this.props.tagEditing}/>
+        <PhotoTagPane photo={this.props.data} jwt={this.props.jwt} updateHandler={this.props.updateHandler} setTagEditing={this.props.setTagEditing}/>
         { exif &&
           <PhotoExifData exif={exif} />
         }
@@ -275,11 +284,19 @@ class PhotoTagInput extends React.Component{
     }
   }
 
+  handleFocus = () => {
+    this.props.setTagEditing(true);
+  }
+
+  handleBlur = () => {
+    this.props.setTagEditing(false);
+  }
+
   render(){
     const curr_value = this.state.tag_value;
     return(
       <div className="tag-input">
-        Add Tag: <input id="tag-input" ref={(input) => { this.nameInput = input; }} className="tag-input-box" value={curr_value} onChange={this.handleChange} onKeyUp={this.handleKeyUp}/>
+        Add Tag: <input id="tag-input" ref={(input) => { this.nameInput = input; }} className="tag-input-box" value={curr_value} onChange={this.handleChange} onKeyUp={this.handleKeyUp} onFocus={this.handleFocus} onBlur={this.handleBlur}/>
         { curr_value &&
           <button  type="button" className="btn btn-secondary tag-input-button" onClick={this.addButtonHandler}>ok</button>
         }
@@ -375,7 +392,7 @@ class PhotoTagPane extends React.Component{
     return(
       <div id="tag-pane" className="tag-pane">
         <PhotoTagCloud tags={this.props.photo.tags} removeTagFunction={this.removeTag }/>
-        <PhotoTagInput addTagFunction={this.addTag} />
+        <PhotoTagInput addTagFunction={this.addTag} setTagEditing={this.props.setTagEditing}/>
       </div>
     )
   }
@@ -396,9 +413,11 @@ class PhotoRating extends React.Component{
   }
 
   ratingShortcutHandler = (e) =>{
-    if (e.keyCode >= 49 && e.keyCode <=53){
-      this.setRating(e.keyCode-48)
-      e.preventDefault();
+    if(!this.props.tagEditing){
+      if (e.keyCode >= 49 && e.keyCode <=53){
+        this.setRating(e.keyCode-48)
+        e.preventDefault();
+      }
     }
   }
 
