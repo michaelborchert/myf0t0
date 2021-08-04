@@ -1,5 +1,5 @@
 Next Steps:
-  - BUG: typing a number (or presumably N or P) while entering a tag causes it to set rating and/or navigate.  Need to disable other keyboard shortcuts when tag entry has focus
+  - Look into weirdness related to grant failures - only works intermittently for chad?
   - Update readme
   - Deployment/Update process
   * Demo!

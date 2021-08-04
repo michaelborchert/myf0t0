@@ -99,7 +99,7 @@ class PhotoDetailModal extends React.Component{
   }
 
   photoNavShortcutHandler = (e) => {
-    if (!this.state.tagEditing){
+    if (!this.state.tagEditing && this.props.show){
       if (e.keyCode == 80 || e.keyCode == 39) {
         this.props.photoFocusHandler(this.props.photo.previous)
       } else if (e.keyCode == 78 || e.keyCode == 37) {
