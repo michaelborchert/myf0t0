@@ -315,6 +315,7 @@ Resources:
       Handler: app.app
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.6
+      Timeout: 30
   ApiFunctionPermission:
     Type: AWS::Lambda::Permission
     DependsOn: RestApi

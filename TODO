@@ -1,4 +1,5 @@
 Next Steps:
+  - Delete Object processor does not appear to be working.
   - Look into weirdness related to grant failures - only works intermittently for chad?
   - Update readme
   - Deployment/Update process
