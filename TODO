@@ -1,10 +1,10 @@
 Next Steps:
+  - Refactor Galleries - add API for getting signed URL's, move data fetch to thumbnail.
   - Delete Object processor does not appear to be working.
   - Look into weirdness related to grant failures - only works intermittently for chad?
   - Update readme
   - Deployment/Update process
   * Demo!
-    ? Medium-sized thumbnail for detail view - is this still needed with current speed?
 
 
 Goals:

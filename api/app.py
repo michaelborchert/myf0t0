@@ -20,9 +20,12 @@ cors_config = CORSConfig(
 unauthenticated_cors_config = CORSConfig(
     allow_origin='*')
 
+app.api.binary_types = ['*/*']
+
 db_client = boto3.client('dynamodb')
 db = boto3.resource('dynamodb')
 s3_client = boto3.client('s3')
+sts_client = boto3.client('sts')
 
 def get_index_hash(filename):
     return int(hashlib.md5(filename.encode()).hexdigest(), 16)%4
@@ -119,10 +122,42 @@ def create_presigned_url(bucket_name, object_name, expiration=3600):
     # The response contains the presigned URL
     return response
 
+def image_matches_filters(image, filters):
+    if "start_date" in filters.keys():
+        if image["SK"] < filters["start_date"]:
+            return False
+    if "end_date" in filters.keys():
+        if image["SK"] > filters["end_date"]:
+            return False
+    if "rating" in filters.keys():
+        if image["GSI1PK"] < filters["rating"] and filters["rating"] != "all":
+            return False
+    if "tags" in filters.keys():
+        for tag in filters["tags"].split(","):
+            if "tags" not in image.keys():
+                return False
+            if tag not in image["tags"]:
+                return False
+    return True
 
 @app.route("/", methods=['GET'])
 def hello():
   return {"hello": "world"}
+
+@app.route("/image", methods=['GET'])
+def get_image():
+    query_params = app.current_request.to_dict()["query_params"]
+    if "key" not in query_params or "bucket" not in query_params:
+        return Response(body='Malformed request', status_code=400)
+    response = s3_client.get_object(Bucket=query_params["bucket"], Key=query_params["key"])
+    image = response["Body"].read()
+
+    return Response(
+        body=image,
+        headers={"Content-Type": "image/jpeg"},
+        status_code=200
+    )
+
 
 @app.route("/photo", methods=['GET'], cors=cors_config)
 def get_photos():
@@ -131,6 +166,73 @@ def get_photos():
     if not query_params:
         query_params = {}
     return get_photos_from_filters(query_params, query_params.get("max_results", 50), query_params.get("LastPhotoKey", None))
+
+# @app.route("/gallery_photo", methods=['GET'], cors=unauthenticated_cors_config)
+# def get_gallery_photo():
+#     query_params = app.current_request.to_dict()["query_params"]
+#     if ("gallery_id" not in query_params or "photo_id" not in query_params):
+#         return Response(body='Malformed body',
+#                         status_code=400)
+
+#     filename_parts = photo_id.split("_")[1:]
+#     filename = "_".join(filename_parts)
+#     table = db.Table(os.environ['db_name'])
+#     response = table.query(
+#         Select='ALL_ATTRIBUTES',
+#         KeyConditionExpression = Key('PK').eq(get_index_hash(filename)))
+
+@app.route("/gallery_image", methods=['GET'], cors=unauthenticated_cors_config)
+def get_gallery_image():
+    query_params = app.current_request.to_dict()["query_params"]
+    if "photo_id" not in query_params or "gallery_id" not in query_params:
+        return Response(body='Malformed request', status_code=400)
+    
+    #check to see if image is in gallery
+    #get gallery filters and image metadata in separate queries.
+    table = db.Table(os.environ['db_name'])
+    gallery_response = table.query(
+        IndexName='GSI1',
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression = Key('GSI1PK').eq("gallery") & Key('GSI1SK').eq(query_params["gallery_id"])
+    )
+    
+    #Split on the first underscore to separate the filename from the timestamp.
+    filename = query_params["photo_id"].split("_",1)[1]
+    
+    print(get_index_hash(filename))
+    print(query_params["photo_id"])
+    image_response = table.query(
+        Select='ALL_ATTRIBUTES',
+        KeyConditionExpression = Key('PK').eq("photos"+str(get_index_hash(filename))) & Key('SK').eq(query_params["photo_id"])
+    )
+
+    filters = json.loads(gallery_response["Items"][0]["filters"])
+    image = image_response["Items"][0]
+    print(filters)
+    print(image)
+    if not image_matches_filters(image, filters):
+        return Response(
+            body="Unauthorized.",
+            status_code=403
+        )
+
+    image_location=image["GSI1SK"]
+    if "thumbnail" in query_params:
+        if query_params["thumbnail"] == "true":
+            image_location=image["thumbnail_key"]
+
+    s3_key_arr = image_location.split("/",1)
+    s3_bucket = s3_key_arr[0]
+    s3_key = s3_key_arr[1]
+
+    response = s3_client.get_object(Bucket=s3_bucket, Key=s3_key)
+    image = response["Body"].read()
+
+    return Response(
+        body=image,
+        headers={"Content-Type": "image/jpeg"},
+        status_code=200
+    )
 
 def get_photos_from_filters(filters, max_items, last_key=None):
     filter_expression = "PK BETWEEN :photostart AND :photoend"
@@ -456,7 +558,8 @@ def get_gallery(gallery_id):
         print(filters)
         response = get_photos_from_filters(filters, 200)
         print(response)
-        #Gotsta sign the URL's server-side so they're accessible for unauthenticated users!
+        #Gotsta get the keys to dynamically build the STS 
+        allowed_keys = []
         for photo in response["Items"]:
             id = photo["GSI1SK"]
             print(id)
@@ -467,14 +570,24 @@ def get_gallery(gallery_id):
             key = id_arr[1]
             print(key)
             expiration = 3600
-            photo["signed_url"] = create_presigned_url(bucket, key, expiration)
+            photo["photo_bucket"] = bucket
+            photo["photo_key"] = key
+            photo["photo_expiration"] = expiration
+
+            #photo["signed_url"] = create_presigned_url(bucket, key, expiration)
 
             thumbnail_id = photo["thumbnail_key"]
             thumbnail_id_arr = thumbnail_id.split('/', 1)
             thumbnail_bucket = thumbnail_id_arr[0]
             thumbnail_key = thumbnail_id_arr[1]
-            photo["signed_thumbnail_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, expiration)
+            photo["thumbnail_bucket"] = thumbnail_bucket
+            photo["thumbnail_key"] = thumbnail_key
+            photo["thumbnail_expiration"] = expiration
+
+            #photo["signed_thumbnail_url"] = create_presigned_url(thumbnail_bucket, thumbnail_key, expiration)
         response["GalleryName"] = name
+
+        #session_token = sts_client.
         return(response)
     else:
         return {'message': 'Something went wrong - no filters found.'}

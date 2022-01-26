@@ -847,7 +847,7 @@ Resources:
                 "cognito-identity.amazonaws.com:amr": authenticated
       Description: Site Photo Viewer Role
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/ReadOnlyAccess
+        - arn:aws:iam::aws:policy/ReadOnlyAccess      
   AdminGroup:
     Type: AWS::Cognito::UserPoolGroup
     Properties:

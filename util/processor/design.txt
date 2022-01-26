@@ -26,9 +26,8 @@ id = filename
 
 PK                          SK                  GSI1PK    GSI1SK
 'photos[0..4{hash of id}]'  date+name(photo id) rating    s3_key      <metadata - including tags>
-'tags[0..4]{hash of id}]'   tag                 tag       photo id    <s3_key>
+"tag:"+tag                  date+name(photo id)           s3_key      <thumbnail>      
+"gallery"                   gallery name        "gallery" gallery_id  filters
 
-gallery_id (name)           gallery_id                                <metadata>
-                            photo id            s3_key    gallery_id
 
 https://www.citusdata.com/blog/2016/03/30/five-ways-to-paginate/

@@ -1591,11 +1591,12 @@ class App extends React.Component {
   }
 
   componentDidMount(){
+    debugger;
     if (this.auth.getCurrentUser()) {
       console.log(this.auth);
       if (this.sessionIsExpired(this.auth.signInUserSession.accessToken)){
         console.debug("Panic!")
-        //this.auth.signOut();
+        this.auth.signOut();
       }
       this.auth.getSession();
     }
